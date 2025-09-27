@@ -396,6 +396,12 @@ p {
   color: var(--color-primary);
 }
 
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+}
+
 .nav-links {
   display: flex;
   gap: var(--space-24);
@@ -411,6 +417,31 @@ p {
 .nav-link:hover,
 .nav-link.active {
   color: var(--color-primary);
+}
+
+/* Theme Toggle */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-base);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.theme-toggle:hover {
+  background: var(--color-secondary);
+  border-color: var(--color-primary);
+}
+
+.theme-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 /* Hero Section */
@@ -1008,6 +1039,10 @@ p {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .nav-right {
+    gap: var(--space-12);
+  }
+  
   .nav-links {
     gap: var(--space-16);
   }
@@ -1057,6 +1092,11 @@ p {
   .nav-content {
     flex-direction: column;
     gap: var(--space-12);
+  }
+  
+  .nav-right {
+    width: 100%;
+    justify-content: space-between;
   }
   
   .hero h1 {

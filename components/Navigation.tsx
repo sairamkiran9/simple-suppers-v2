@@ -2,6 +2,7 @@
 
 import { Utensils } from 'lucide-react';
 import { ViewType } from '@/lib/types';
+import ThemeToggle from './ThemeToggle';
 
 interface NavigationProps {
   currentView: ViewType;
@@ -24,16 +25,19 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
             <Utensils size={24} />
             <span>Simple Suppers</span>
           </div>
-          <div className="nav-links">
-            {navItems.map((item) => (
-              <button
-                key={item.view}
-                className={`nav-link ${currentView === item.view ? 'active' : ''}`}
-                onClick={() => onViewChange(item.view)}
-              >
-                {item.label}
-              </button>
-            ))}
+          <div className="nav-right">
+            <div className="nav-links">
+              {navItems.map((item) => (
+                <button
+                  key={item.view}
+                  className={`nav-link ${currentView === item.view ? 'active' : ''}`}
+                  onClick={() => onViewChange(item.view)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <ThemeToggle />
           </div>
         </div>
       </div>

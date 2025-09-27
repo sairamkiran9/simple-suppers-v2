@@ -6,7 +6,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function generateStars(rating: number): string {
-  return '★'.repeat(Math.floor(rating)) + '☆'.repeat(5 - Math.floor(rating));
+  const clampedRating = Math.max(0, Math.min(5, rating));
+  const fullStars = Math.floor(clampedRating);
+  const emptyStars = 5 - fullStars;
+  return '★'.repeat(fullStars) + '☆'.repeat(emptyStars);
 }
 
 export function showSuccessNotification(message: string): void {

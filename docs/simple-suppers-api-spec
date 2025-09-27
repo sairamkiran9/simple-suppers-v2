@@ -1,0 +1,848 @@
+# Simple Suppers - Frontend API Specification
+
+## Overview
+This document contains all API endpoints required for the Simple Suppers frontend application. Each endpoint includes request/response schemas, authentication requirements, and common error codes.
+
+**Base URL:** `/api`  
+**Authentication:** Supabase JWT tokens via NextAuth.js  
+**Content-Type:** `application/json`
+
+---
+
+## 1. Authentication Endpoints
+
+### 1.1 User Registration
+**Endpoint:** `POST /api/auth/register`  
+**Authentication:** None required  
+**Description:** Register a new user (customer or provider)
+
+**Request Body:**
+```json
+{
+  "email": "string (required)",
+  "password": "string (required, min 6 chars)",
+  "name": "string (required)",
+  "user_type": "user" | "provider" (required)
+}
+```
+
+**Success Response (201):**
+```json
+{
+  "success": true,
+  "user": {
+    "id": "uuid",
+    "email": "string",
+    "name": "string",
+    "user_type": "user" | "provider",
+    "subscription_tier": "freemium"
+  }
+}
+```
+
+**Error Responses:**
+- `400` - Invalid request data
+- `409` - Email already exists
+
+---
+
+### 1.2 User Login
+**Endpoint:** `POST /api/auth/login`  
+**Authentication:** None required  
+**Description:** Authenticate user with email/password
+
+**Request Body:**
+```json
+{
+  "email": "string (required)",
+  "password": "string (required)"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "user": {
+    "id": "uuid",
+    "email": "string",
+    "name": "string",
+    "user_type": "user" | "provider" | "admin",
+    "subscription_tier": "freemium" | "premium"
+  }
+}
+```
+
+**Error Responses:**
+- `401` - Invalid credentials
+- `404` - User not found
+
+---
+
+## 2. Meal Plans Endpoints
+
+### 2.1 Browse Meal Plans
+**Endpoint:** `GET /api/meal-plans`  
+**Authentication:** Optional  
+**Description:** Get paginated list of meal plans with filtering
+
+**Query Parameters:**
+```
+category?: string
+duration_type?: "daily" | "weekly" | "monthly"
+min_price?: number
+max_price?: number
+dietary_tags?: string[] (comma-separated)
+search?: string
+is_free?: boolean
+limit?: number (default: 20, max: 100)
+offset?: number (default: 0)
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "plans": [
+      {
+        "id": "uuid",
+        "title": "string",
+        "description": "string",
+        "duration_days": "number",
+        "duration_type": "daily" | "weekly" | "monthly",
+        "final_price": "number",
+        "category": "string",
+        "dietary_tags": ["string"],
+        "difficulty_level": "beginner" | "intermediate" | "advanced",
+        "is_free": "boolean",
+        "is_featured": "boolean",
+        "average_rating": "number",
+        "total_purchases": "number",
+        "provider": {
+          "name": "string",
+          "profile_image_url": "string"
+        },
+        "preview_meals": ["string"] // First 2-3 meal names
+      }
+    ],
+    "total": "number",
+    "has_more": "boolean"
+  }
+}
+```
+
+---
+
+### 2.2 Get Meal Plan Details
+**Endpoint:** `GET /api/meal-plans/:id`  
+**Authentication:** Optional (affects response content)  
+**Description:** Get detailed meal plan information
+
+**Success Response (200) - Preview Mode (Anonymous/Non-purchased):**
+```json
+{
+  "success": true,
+  "data": {
+    "plan": {
+      "id": "uuid",
+      "title": "string",
+      "description": "string",
+      "duration_days": "number",
+      "final_price": "number",
+      "category": "string",
+      "dietary_tags": ["string"],
+      "average_rating": "number",
+      "provider": {
+        "name": "string",
+        "bio": "string",
+        "profile_image_url": "string"
+      },
+      "preview_meals": ["string"] // Limited meal names only
+    },
+    "access_level": "preview",
+    "user_has_purchased": false
+  }
+}
+```
+
+**Success Response (200) - Full Access (Purchased/Free plans):**
+```json
+{
+  "success": true,
+  "data": {
+    "plan": {
+      "id": "uuid",
+      "title": "string",
+      "description": "string",
+      "duration_days": "number",
+      "final_price": "number",
+      "provider": {
+        "name": "string",
+        "bio": "string"
+      },
+      "days": [
+        {
+          "day_number": "number",
+          "day_title": "string",
+          "meals": [
+            {
+              "meal_type": "breakfast" | "lunch" | "dinner" | "snack",
+              "meal_name": "string",
+              "description": "string",
+              "prep_time_minutes": "number",
+              "cook_time_minutes": "number",
+              "servings": "number",
+              "ingredients": ["string"],
+              "instructions": "string",
+              "image_url": "string"
+            }
+          ]
+        }
+      ]
+    },
+    "access_level": "full",
+    "user_has_purchased": true
+  }
+}
+```
+
+**Error Responses:**
+- `404` - Meal plan not found
+- `403` - Access denied (for paid plans without purchase)
+
+---
+
+## 3. User Management Endpoints
+
+### 3.1 Get User Dashboard
+**Endpoint:** `GET /api/user/dashboard`  
+**Authentication:** Required  
+**Description:** Get user's dashboard data with purchased and free plans
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "name": "string",
+      "email": "string",
+      "subscription_tier": "freemium" | "premium",
+      "free_plans_used": "number"
+    },
+    "purchased_plans": [
+      {
+        "id": "uuid",
+        "title": "string",
+        "provider_name": "string",
+        "purchase_date": "ISO date",
+        "purchase_price": "number"
+      }
+    ],
+    "free_plans": [
+      {
+        "id": "uuid",
+        "title": "string",
+        "provider_name": "string"
+      }
+    ],
+    "total_spent": "number"
+  }
+}
+```
+
+**Error Responses:**
+- `401` - Authentication required
+
+---
+
+### 3.2 Update User Profile
+**Endpoint:** `PATCH /api/user/profile`  
+**Authentication:** Required  
+**Description:** Update user profile information
+
+**Request Body:**
+```json
+{
+  "name": "string (optional)",
+  "dietary_preferences": ["string"] (optional)
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "user": {
+    "id": "uuid",
+    "name": "string",
+    "email": "string",
+    "dietary_preferences": ["string"]
+  }
+}
+```
+
+---
+
+## 4. Purchase Endpoints
+
+### 4.1 Create Payment Intent
+**Endpoint:** `POST /api/purchases/create-intent`  
+**Authentication:** Required  
+**Description:** Create Stripe payment intent for meal plan purchase
+
+**Request Body:**
+```json
+{
+  "meal_plan_id": "uuid (required)"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "client_secret": "string",
+    "amount": "number",
+    "meal_plan": {
+      "id": "uuid",
+      "title": "string",
+      "final_price": "number",
+      "provider_name": "string"
+    }
+  }
+}
+```
+
+**Error Responses:**
+- `400` - Invalid meal plan ID
+- `409` - Plan already purchased by user
+
+---
+
+### 4.2 Confirm Purchase
+**Endpoint:** `POST /api/purchases/confirm`  
+**Authentication:** Required  
+**Description:** Confirm successful payment and grant access
+
+**Request Body:**
+```json
+{
+  "payment_intent_id": "string (required)",
+  "meal_plan_id": "uuid (required)"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "purchase_id": "uuid",
+    "meal_plan_id": "uuid",
+    "access_granted": true
+  }
+}
+```
+
+**Error Responses:**
+- `400` - Payment verification failed
+- `404` - Payment intent not found
+
+---
+
+### 4.3 Get Purchase History
+**Endpoint:** `GET /api/purchases/history`  
+**Authentication:** Required  
+**Description:** Get user's purchase history with pagination
+
+**Query Parameters:**
+```
+limit?: number (default: 10)
+offset?: number (default: 0)
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "purchases": [
+      {
+        "id": "uuid",
+        "meal_plan_id": "uuid",
+        "meal_plan_title": "string",
+        "provider_name": "string",
+        "purchase_price": "number",
+        "purchased_at": "ISO date"
+      }
+    ],
+    "total": "number",
+    "total_spent": "number"
+  }
+}
+```
+
+---
+
+## 5. Shopping List Endpoints
+
+### 5.1 Generate Shopping List
+**Endpoint:** `POST /api/shopping-lists/generate`  
+**Authentication:** Required  
+**Description:** Generate shopping list for purchased meal plan
+
+**Request Body:**
+```json
+{
+  "meal_plan_id": "uuid (required)"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "shopping_list_id": "uuid",
+    "ingredients": [
+      {
+        "category": "string", // e.g., "Produce", "Meat", "Dairy"
+        "items": [
+          {
+            "name": "string",
+            "quantity": "string",
+            "notes": "string"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Error Responses:**
+- `403` - Access denied (plan not purchased)
+- `404` - Meal plan not found
+
+---
+
+### 5.2 Download Shopping List PDF
+**Endpoint:** `GET /api/shopping-lists/:id/download`  
+**Authentication:** Required  
+**Description:** Download shopping list as PDF
+
+**Success Response (200):**
+```
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="shopping-list.pdf"
+[PDF Binary Data]
+```
+
+**Error Responses:**
+- `404` - Shopping list not found
+- `403` - Access denied
+
+---
+
+## 6. Provider Endpoints
+
+### 6.1 Complete Provider Profile
+**Endpoint:** `POST /api/providers/complete-profile`  
+**Authentication:** Required (Provider only)  
+**Description:** Complete provider profile setup
+
+**Request Body:**
+```json
+{
+  "business_name": "string (required)",
+  "bio": "string (required)",
+  "profile_image_url": "string (optional)"
+}
+```
+
+**Success Response (201):**
+```json
+{
+  "success": true,
+  "provider": {
+    "id": "uuid",
+    "user_id": "uuid",
+    "business_name": "string",
+    "bio": "string",
+    "profile_image_url": "string",
+    "is_active": true
+  }
+}
+```
+
+---
+
+### 6.2 Create Meal Plan
+**Endpoint:** `POST /api/providers/meal-plans`  
+**Authentication:** Required (Provider only)  
+**Description:** Create a new meal plan
+
+**Request Body:**
+```json
+{
+  "title": "string (required)",
+  "description": "string (required)",
+  "duration_days": "number (required)",
+  "duration_type": "daily" | "weekly" | "monthly" (required),
+  "category": "string (required)",
+  "dietary_tags": ["string"] (optional),
+  "difficulty_level": "beginner" | "intermediate" | "advanced",
+  "days": [
+    {
+      "day_number": "number (required)",
+      "day_title": "string (required)",
+      "meals": [
+        {
+          "meal_type": "breakfast" | "lunch" | "dinner" | "snack",
+          "meal_name": "string (required)",
+          "description": "string",
+          "prep_time_minutes": "number",
+          "cook_time_minutes": "number",
+          "servings": "number",
+          "ingredients": ["string"] (required),
+          "instructions": "string (required)",
+          "image_url": "string (optional)"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Success Response (201):**
+```json
+{
+  "success": true,
+  "meal_plan": {
+    "id": "uuid",
+    "title": "string",
+    "final_price": "number", // Calculated by admin pricing rules
+    "is_published": true
+  }
+}
+```
+
+---
+
+### 6.3 Get Provider Dashboard
+**Endpoint:** `GET /api/providers/dashboard`  
+**Authentication:** Required (Provider only)  
+**Description:** Get provider dashboard with earnings and analytics
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "provider": {
+      "business_name": "string",
+      "total_earnings": "number",
+      "total_plans": "number",
+      "is_active": "boolean"
+    },
+    "earnings_summary": {
+      "this_month": "number",
+      "last_month": "number",
+      "total_lifetime": "number"
+    },
+    "recent_purchases": [
+      {
+        "meal_plan_title": "string",
+        "purchase_price": "number",
+        "provider_earnings": "number",
+        "purchased_at": "ISO date"
+      }
+    ],
+    "top_plans": [
+      {
+        "id": "uuid",
+        "title": "string",
+        "total_purchases": "number",
+        "total_earnings": "number"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 6.4 Update Meal Plan
+**Endpoint:** `PATCH /api/providers/meal-plans/:id`  
+**Authentication:** Required (Provider only)  
+**Description:** Update existing meal plan
+
+**Request Body:** (Same structure as create, all fields optional)
+```json
+{
+  "title": "string",
+  "description": "string",
+  "category": "string",
+  "dietary_tags": ["string"]
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "meal_plan": {
+    "id": "uuid",
+    "title": "string",
+    "updated_at": "ISO date"
+  }
+}
+```
+
+---
+
+### 6.5 Delete Meal Plan
+**Endpoint:** `DELETE /api/providers/meal-plans/:id`  
+**Authentication:** Required (Provider only)  
+**Description:** Delete meal plan (soft delete)
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Meal plan deleted successfully"
+}
+```
+
+**Error Responses:**
+- `403` - Not authorized to delete this plan
+- `404` - Meal plan not found
+
+---
+
+## 7. Admin Endpoints
+
+### 7.1 Admin Dashboard
+**Endpoint:** `GET /api/admin/dashboard`  
+**Authentication:** Required (Admin only)  
+**Description:** Get platform overview and statistics
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "stats": {
+      "total_users": "number",
+      "total_providers": "number",
+      "total_meal_plans": "number",
+      "total_purchases": "number",
+      "total_revenue": "number"
+    },
+    "recent_activity": [
+      {
+        "type": "purchase" | "registration" | "plan_created",
+        "description": "string",
+        "created_at": "ISO date"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 7.2 Manage Users
+**Endpoint:** `GET /api/admin/users`  
+**Authentication:** Required (Admin only)  
+**Description:** Get paginated list of all users
+
+**Query Parameters:**
+```
+user_type?: "user" | "provider"
+search?: string
+limit?: number (default: 50)
+offset?: number (default: 0)
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "users": [
+      {
+        "id": "uuid",
+        "email": "string",
+        "name": "string",
+        "user_type": "user" | "provider",
+        "subscription_tier": "string",
+        "created_at": "ISO date",
+        "is_active": "boolean"
+      }
+    ],
+    "total": "number"
+  }
+}
+```
+
+---
+
+### 7.3 Deactivate User
+**Endpoint:** `PATCH /api/admin/users/:id/deactivate`  
+**Authentication:** Required (Admin only)  
+**Description:** Deactivate user account
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "User deactivated successfully"
+}
+```
+
+---
+
+### 7.4 Manage Meal Plans
+**Endpoint:** `GET /api/admin/meal-plans`  
+**Authentication:** Required (Admin only)  
+**Description:** Get all meal plans for moderation
+
+**Query Parameters:**
+```
+status?: "published" | "unpublished"
+provider_id?: uuid
+search?: string
+limit?: number (default: 50)
+offset?: number (default: 0)
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "meal_plans": [
+      {
+        "id": "uuid",
+        "title": "string",
+        "provider_name": "string",
+        "category": "string",
+        "final_price": "number",
+        "total_purchases": "number",
+        "is_published": "boolean",
+        "created_at": "ISO date"
+      }
+    ],
+    "total": "number"
+  }
+}
+```
+
+---
+
+### 7.5 Remove Meal Plan
+**Endpoint:** `DELETE /api/admin/meal-plans/:id`  
+**Authentication:** Required (Admin only)  
+**Description:** Remove meal plan from platform
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Meal plan removed successfully"
+}
+```
+
+---
+
+### 7.6 Update Pricing Rules
+**Endpoint:** `POST /api/admin/pricing-rules`  
+**Authentication:** Required (Admin only)  
+**Description:** Create or update pricing rules
+
+**Request Body:**
+```json
+{
+  "duration_days": "number (required)",
+  "base_price_per_day": "number (required)",
+  "bulk_discount_percentage": "number (optional, default: 0)",
+  "provider_share_percentage": "number (optional, default: 70)"
+}
+```
+
+**Success Response (201):**
+```json
+{
+  "success": true,
+  "pricing_rule": {
+    "id": "uuid",
+    "duration_days": "number",
+    "final_price": "number", // calculated
+    "is_active": true
+  }
+}
+```
+
+---
+
+## 8. Common Error Response Format
+
+All endpoints return errors in this consistent format:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "string",
+    "message": "string",
+    "details": "object (optional)"
+  }
+}
+```
+
+**Common HTTP Status Codes:**
+- `400` - Bad Request (validation errors)
+- `401` - Unauthorized (authentication required)
+- `403` - Forbidden (insufficient permissions)  
+- `404` - Not Found
+- `409` - Conflict (duplicate data)
+- `422` - Unprocessable Entity (business logic errors)
+- `500` - Internal Server Error
+
+---
+
+## 9. Rate Limiting
+
+**Rate Limits:**
+- Anonymous users: 100 requests per hour
+- Authenticated users: 1000 requests per hour  
+- Admin users: 5000 requests per hour
+
+**Rate Limit Headers:**
+```
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 999
+X-RateLimit-Reset: 1640995200
+```
+
+---
+
+## 10. File Upload Notes
+
+**Image uploads go directly to Supabase Storage with signed URLs:**
+
+1. Frontend gets signed upload URL from Supabase
+2. Upload image directly to Supabase Storage
+3. Include the final image URL in API requests (meal_plan creation, profile updates)
+
+**Supported formats:** JPG, PNG, WebP  
+**Max file size:** 5MB  
+**Auto-optimization:** Images resized to multiple formats for responsive design
+
+---
+
+This API specification covers all frontend requirements for Simple Suppers MVP. Each endpoint has been designed for simplicity and follows RESTful conventions.

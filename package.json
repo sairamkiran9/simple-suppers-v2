@@ -10,7 +10,14 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
+    "supabase:reset": "npx supabase db reset",
+    "supabase:migrate": "npx supabase db diff --file migration_name",
+    "supabase:gen-types": "npx supabase gen types typescript --local > lib/supabase-types.ts",
+    "db:seed": "npx supabase seed",
+    "db:reset": "npm run supabase:reset && npm run db:seed"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -79,6 +86,7 @@
     "@testing-library/user-event": "^14.5.2",
     "@types/jest": "^29.5.12",
     "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0"
+    "jest-environment-jsdom": "^29.7.0",
+    "supabase": "^2.45.5"
   }
 }

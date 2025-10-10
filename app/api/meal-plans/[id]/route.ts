@@ -1,0 +1,171 @@
+import { NextRequest } from 'next/server'
+import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/errors'
+import { withRateLimit } from '@/lib/api/rate-limit'
+import { getCurrentUser, checkMealPlanAccess } from '@/lib/api/auth'
+import { getMealPlanById, updateMealPlanViews, trackEvent } from '@/lib/database-utils'
+
+// Force dynamic rendering for this API route
+export const dynamic = 'force-dynamic'
+
+interface Params {
+  id: string
+}
+
+export async function GET(request: NextRequest, { params }: { params: Params }) {
+  try {
+    const { id } = params
+
+    // Get current user (optional for this endpoint)
+    const user = await getCurrentUser(request)
+
+    // Apply rate limiting
+    withRateLimit(request, user?.id, user?.user_type)
+
+    // Get meal plan from database
+    const mealPlan = await getMealPlanById(id)
+
+    if (!mealPlan) {
+      return ErrorResponses.notFound('Meal plan')
+    }
+
+    // Track view
+    await updateMealPlanViews(id)
+
+    // Check user access level
+    let accessLevel: 'preview' | 'full' = 'preview'
+    let userHasPurchased = false
+
+    if (user) {
+      const accessCheck = await checkMealPlanAccess(user.id, id)
+      if (accessCheck.hasAccess) {
+        accessLevel = 'full'
+        userHasPurchased = accessCheck.accessType === 'purchased'
+      }
+    } else if (mealPlan.is_free) {
+      // Free plans have full access for everyone
+      accessLevel = 'full'
+    }
+
+    // Track analytics event
+    if (user) {
+      await trackEvent({
+        event_type: 'view_meal_plan',
+        user_id: user.id,
+        meal_plan_id: id,
+        metadata: {
+          access_level: accessLevel,
+          user_has_purchased: userHasPurchased
+        }
+      })
+    }
+
+    // Return preview or full data based on access level
+    if (accessLevel === 'preview') {
+      // Preview mode - limited meal plan days (first 2 days only)
+      const previewDays = mealPlan.meal_plan_days.slice(0, 2).map(day => ({
+        id: day.id,
+        day_number: day.day_number,
+        day_title: day.day_title,
+        meals: day.meals.slice(0, 2).map(meal => ({
+          id: meal.id,
+          meal_type: meal.meal_type,
+          meal_name: meal.meal_name,
+          description: meal.description,
+          prep_time_minutes: meal.prep_time_minutes,
+          cook_time_minutes: meal.cook_time_minutes,
+          servings: meal.servings,
+          ingredients: typeof meal.ingredients === 'string'
+            ? JSON.parse(meal.ingredients)
+            : meal.ingredients,
+          instructions: meal.instructions,
+          image_url: meal.image_url
+        }))
+      }))
+
+      return SuccessResponses.ok({
+        id: mealPlan.id,
+        title: mealPlan.title,
+        description: mealPlan.description,
+        duration_days: mealPlan.duration_days,
+        duration_type: mealPlan.duration_type,
+        final_price: mealPlan.final_price,
+        category: mealPlan.category,
+        dietary_tags: mealPlan.dietary_tags,
+        difficulty_level: mealPlan.difficulty_level,
+        is_free: mealPlan.is_free,
+        provider: {
+          id: mealPlan.provider.id,
+          name: mealPlan.provider.business_name,
+          business_name: mealPlan.provider.business_name,
+          bio: mealPlan.provider.bio,
+          profile_image_url: mealPlan.provider.profile_image_url,
+          rating: mealPlan.provider.average_rating
+        },
+        meal_plan_days: previewDays
+      })
+    }
+
+    // Full access mode - complete information
+    const fullDays = mealPlan.meal_plan_days.map(day => ({
+      id: day.id,
+      day_number: day.day_number,
+      day_title: day.day_title,
+      meals: day.meals.map(meal => ({
+        id: meal.id,
+        meal_type: meal.meal_type,
+        meal_name: meal.meal_name,
+        description: meal.description,
+        prep_time_minutes: meal.prep_time_minutes,
+        cook_time_minutes: meal.cook_time_minutes,
+        servings: meal.servings,
+        ingredients: typeof meal.ingredients === 'string'
+          ? JSON.parse(meal.ingredients)
+          : meal.ingredients,
+        instructions: meal.instructions,
+        image_url: meal.image_url
+      }))
+    }))
+
+    return SuccessResponses.ok({
+      id: mealPlan.id,
+      title: mealPlan.title,
+      description: mealPlan.description,
+      duration_days: mealPlan.duration_days,
+      duration_type: mealPlan.duration_type,
+      final_price: mealPlan.final_price,
+      category: mealPlan.category,
+      dietary_tags: mealPlan.dietary_tags,
+      difficulty_level: mealPlan.difficulty_level,
+      is_free: mealPlan.is_free,
+      provider: {
+        id: mealPlan.provider.id,
+        name: mealPlan.provider.business_name,
+        business_name: mealPlan.provider.business_name,
+        bio: mealPlan.provider.bio,
+        profile_image_url: mealPlan.provider.profile_image_url,
+        rating: mealPlan.provider.average_rating
+      },
+      meal_plan_days: fullDays
+    })
+
+  } catch (error) {
+    return handleAPIError(error)
+  }
+}
+
+// Handle unsupported methods
+export async function POST() {
+  return ErrorResponses.validation('Method not allowed')
+}
+
+export async function PUT() {
+  return ErrorResponses.validation('Method not allowed')
+}
+
+export async function DELETE() {
+  return ErrorResponses.validation('Method not allowed')
+}
+
+export async function PATCH() {
+  return ErrorResponses.validation('Method not allowed')
+}

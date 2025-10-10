@@ -168,6 +168,7 @@ export interface MealPlanWithProvider extends MealPlan {
 }
 
 export interface MealPlanWithDaysAndMeals extends MealPlan {
+  provider: MealPlanProvider
   meal_plan_days: (MealPlanDay & {
     meals: Meal[]
   })[]

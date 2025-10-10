@@ -1,20 +1,45 @@
 'use client';
 
-import { Utensils } from 'lucide-react';
+import { Utensils, LogOut } from 'lucide-react';
 import { ViewType } from '@/lib/types';
+import { useAuth } from '@/lib/auth-context';
 import ThemeToggle from './ThemeToggle';
+import { Button } from '@/components/ui/button';
 
 interface NavigationProps {
   currentView: ViewType;
   onViewChange: (view: ViewType) => void;
+  onLoginClick: () => void;
 }
 
-export default function Navigation({ currentView, onViewChange }: NavigationProps) {
+export default function Navigation({ currentView, onViewChange, onLoginClick }: NavigationProps) {
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const handleNavClick = (view: ViewType) => {
+    // Check if protected route
+    if (view === 'dashboard' && (!isAuthenticated || user?.user_type !== 'user')) {
+      onLoginClick();
+      return;
+    }
+
+    if (view === 'provider' && (!isAuthenticated || user?.user_type !== 'provider')) {
+      onLoginClick();
+      return;
+    }
+
+    onViewChange(view);
+  };
+
+  const handleLogout = () => {
+    logout();
+    onViewChange('landing');
+  };
+
   const navItems = [
-    { view: 'landing' as ViewType, label: 'Home' },
-    { view: 'browse' as ViewType, label: 'Browse Plans' },
-    { view: 'provider' as ViewType, label: 'For Providers' },
-    { view: 'dashboard' as ViewType, label: 'My Account' },
+    { view: 'landing' as ViewType, label: 'Home', protected: false },
+    { view: 'browse' as ViewType, label: 'Browse Plans', protected: false },
+    { view: 'provider' as ViewType, label: 'For Providers', protected: true, requiresType: 'provider' },
+    { view: 'dashboard' as ViewType, label: 'My Account', protected: true, requiresType: 'user' },
   ];
 
   return (
@@ -31,13 +56,34 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
                 <button
                   key={item.view}
                   className={`nav-link ${currentView === item.view ? 'active' : ''}`}
-                  onClick={() => onViewChange(item.view)}
+                  onClick={() => handleNavClick(item.view)}
                 >
                   {item.label}
                 </button>
               ))}
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              {isAuthenticated ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="flex items-center gap-2"
+                >
+                  <LogOut size={16} />
+                  Logout
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onLoginClick}
+                >
+                  Login
+                </Button>
+              )}
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </div>

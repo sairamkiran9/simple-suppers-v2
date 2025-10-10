@@ -1,0 +1,12 @@
+# Hooks Directory
+
+This directory will contain custom React hooks for API integration.
+
+Custom hooks will be created by other agents to handle:
+- Authentication state
+- Meal plan data fetching
+- User profile management
+- Shopping list generation
+- And more...
+
+Each hook will use the `apiClient` from `lib/api-client.ts` for consistent API communication.

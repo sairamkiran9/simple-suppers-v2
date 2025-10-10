@@ -1,46 +1,53 @@
 'use client';
 
-import { MealPlan } from '@/lib/types';
+import { ApiMealPlan } from '@/lib/api-types';
 import { generateStars } from '@/lib/utils';
 
 interface MealPlanCardProps {
-  plan: MealPlan;
-  onViewDetails: (planId: number) => void;
-  onSubscribe: (planId: number) => void;
+  plan: ApiMealPlan;
+  onViewDetails: (planId: string) => void;
+  onSubscribe: (planId: string) => void;
 }
 
 export default function MealPlanCard({ plan, onViewDetails, onSubscribe }: MealPlanCardProps) {
-  const stars = generateStars(plan.rating);
-  
+  const stars = generateStars(plan.average_rating);
+
   return (
-    <div 
+    <div
       className="meal-plan-card"
       onClick={() => onViewDetails(plan.id)}
     >
       <div className="meal-plan-header">
-        <h3 className="meal-plan-title">{plan.title}</h3>
-        <p className="meal-plan-provider">by {plan.provider}</p>
+        <h3 className="meal-plan-title">
+          {plan.title}
+          {plan.is_free && <span className="badge badge--free">Free</span>}
+          {plan.is_featured && <span className="badge badge--featured">Featured</span>}
+        </h3>
+        <p className="meal-plan-provider">by {plan.provider.name || plan.provider.business_name || 'Unknown Provider'}</p>
         <div className="meal-plan-meta">
-          <div className="meal-plan-price">${plan.price}/mo</div>
+          <div className="meal-plan-price">
+            {plan.is_free ? 'Free' : `$${plan.final_price.toFixed(2)}`}
+          </div>
           <div className="meal-plan-rating">
             <span className="stars">{stars}</span>
-            <span>{plan.rating}</span>
+            <span>{plan.average_rating.toFixed(1)}</span>
           </div>
         </div>
       </div>
       <div className="meal-plan-body">
         <div className="meal-plan-tags">
-          {plan.tags.map((tag, index) => (
+          {plan.dietary_tags.map((tag, index) => (
             <span key={index} className="tag">{tag}</span>
           ))}
         </div>
         <p>{plan.description}</p>
         <div className="meal-plan-stats">
-          <span>{plan.subscribers} subscribers</span>
-          <span>{plan.category}</span>
+          <span>{plan.total_purchases} purchases</span>
+          {plan.category && <span>{plan.category}</span>}
+          <span>{plan.duration_days} days</span>
         </div>
         <div className="meal-plan-actions">
-          <button 
+          <button
             className="btn btn--outline btn--sm"
             onClick={(e) => {
               e.stopPropagation();
@@ -49,7 +56,7 @@ export default function MealPlanCard({ plan, onViewDetails, onSubscribe }: MealP
           >
             View Details
           </button>
-          <button 
+          <button
             className="btn btn--primary btn--sm"
             onClick={(e) => {
               e.stopPropagation();

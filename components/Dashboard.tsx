@@ -12,6 +12,7 @@
 
 import React, { useState } from 'react'
 import { useUserDashboard } from '@/hooks/useUserDashboard'
+import { useShoppingListDownload } from '@/hooks/useShoppingListDownload'
 import { UserProfileForm } from '@/components/UserProfileForm'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,8 +22,13 @@ import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertCircle, Download, ShoppingCart, User } from 'lucide-react'
 
-export default function Dashboard() {
+interface DashboardProps {
+  onViewMealPlan?: (planId: string, origin?: 'browse' | 'dashboard') => void
+}
+
+export default function Dashboard({ onViewMealPlan }: DashboardProps = {}) {
   const { data, isLoading, error, refetch } = useUserDashboard()
+  const { generateAndDownload, isGenerating } = useShoppingListDownload()
   const [activeTab, setActiveTab] = useState('overview')
 
   // Loading state
@@ -152,7 +158,7 @@ export default function Dashboard() {
             <CardContent>
               {data.purchased_plans.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  You haven't purchased any meal plans yet.
+                  You haven&rsquo;t purchased any meal plans yet.
                 </p>
               ) : (
                 <div className="space-y-4">
@@ -182,10 +188,35 @@ export default function Dashboard() {
                             )}
                           </div>
                         </div>
-                        <Button variant="outline" size="sm">
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              // Get meal plan ID - purchased plans have nested meal_plan object
+                              const mealPlanId = plan.meal_plan?.id || plan.id
+                              if (onViewMealPlan) {
+                                onViewMealPlan(mealPlanId, 'dashboard')
+                              }
+                            }}
+                          >
+                            View Plan
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              // Get meal plan ID from either the plan or the nested meal_plan object
+                              const mealPlanId = plan.meal_plan?.id || plan.id
+                              const planTitle = plan.title || plan.meal_plan?.title || 'meal-plan'
+                              generateAndDownload(mealPlanId, planTitle)
+                            }}
+                            disabled={isGenerating}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            {isGenerating ? 'Generating...' : 'Download'}
+                          </Button>
+                        </div>
                       </div>
                       <Separator className="mt-4" />
                     </div>
@@ -218,7 +249,15 @@ export default function Dashboard() {
                             Free
                           </Badge>
                         </div>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (onViewMealPlan) {
+                              onViewMealPlan(plan.id, 'dashboard')
+                            }
+                          }}
+                        >
                           View Plan
                         </Button>
                       </div>

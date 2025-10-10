@@ -25,6 +25,7 @@ export default function Home() {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [viewOrigin, setViewOrigin] = useState<'browse' | 'dashboard'>('browse');
 
   // Fetch meal plans for browse view
   const { data: mealPlansData, isLoading: isLoadingPlans, error: plansError } = useMealPlans(
@@ -62,8 +63,9 @@ export default function Home() {
     setIsAuthModalOpen(false);
   };
 
-  const handleViewDetails = (planId: string) => {
+  const handleViewDetails = (planId: string, origin: 'browse' | 'dashboard' = 'browse') => {
     setSelectedPlanId(planId);
+    setViewOrigin(origin);
     setCurrentView('detail');
   };
 
@@ -176,7 +178,7 @@ export default function Home() {
         return selectedMealPlan ? (
           <MealPlanDetail
             plan={selectedMealPlan}
-            onBack={() => handleViewChange('browse')}
+            onBack={() => handleViewChange(viewOrigin)}
             onSubscribe={handleSubscribe}
           />
         ) : null;
@@ -185,7 +187,7 @@ export default function Home() {
         return <ProviderDashboard />;
 
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard onViewMealPlan={handleViewDetails} />;
 
       default:
         return null;

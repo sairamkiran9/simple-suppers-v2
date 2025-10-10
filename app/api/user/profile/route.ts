@@ -3,7 +3,7 @@ import { UpdateProfileSchema, validateBody } from '@/lib/api/validation'
 import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -23,20 +23,49 @@ export async function PATCH(request: NextRequest) {
 
     const updateData = validation.data
 
-    // Update user profile in database
-    const { data: updatedUser, error } = await supabase
+    // Add validation for empty updates
+    if (!updateData.name && updateData.dietary_preferences === undefined) {
+      return ErrorResponses.validation('At least one field must be provided for update')
+    }
+
+    // Build update payload properly
+    const updatePayload: any = {
+      updated_at: new Date().toISOString()
+    }
+
+    if (updateData.name) {
+      updatePayload.name = updateData.name
+    }
+
+    if (updateData.dietary_preferences !== undefined) {
+      updatePayload.dietary_preferences = updateData.dietary_preferences
+    }
+
+    // Update user profile in database with enhanced error logging
+    // Using supabaseAdmin to bypass RLS since we already validated auth with requireAuth()
+    const { data: updatedUser, error } = await supabaseAdmin
       .from('users')
-      .update({
-        ...(updateData.name && { name: updateData.name }),
-        ...(updateData.dietary_preferences && { dietary_preferences: updateData.dietary_preferences }),
-        updated_at: new Date().toISOString()
-      })
+      .update(updatePayload)
       .eq('id', user.id)
       .select('id, name, email, dietary_preferences')
       .single()
 
     if (error) {
-      throw new Error('Failed to update profile')
+      console.error('Supabase update error:', {
+        error,
+        errorMessage: error.message,
+        errorDetails: error.details,
+        errorHint: error.hint,
+        errorCode: error.code,
+        userId: user.id,
+        updatePayload
+      })
+      throw new Error(`Failed to update profile: ${error.message}`)
+    }
+
+    if (!updatedUser) {
+      console.error('No user data returned after update', { userId: user.id })
+      return ErrorResponses.notFound('User')
     }
 
     return SuccessResponses.ok({

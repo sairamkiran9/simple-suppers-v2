@@ -291,7 +291,7 @@ export default function ProviderDashboard() {
         {isEmpty && (
           <div className="text-center py-12">
             <p className="text-gray-600 dark:text-gray-400">
-              You haven't created any meal plans yet. Use the form above to get started!
+              You haven&rsquo;t created any meal plans yet. Use the form above to get started!
             </p>
           </div>
         )}

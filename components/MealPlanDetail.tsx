@@ -3,6 +3,8 @@
 import { ArrowLeft } from 'lucide-react';
 import { ApiMealPlanDetail } from '@/lib/api-types';
 import { generateStars } from '@/lib/utils';
+import { generateSamplePDF } from '@/lib/pdf-generator';
+import { useShoppingListDownload } from '@/hooks/useShoppingListDownload';
 
 interface MealPlanDetailProps {
   plan: ApiMealPlanDetail;
@@ -11,6 +13,9 @@ interface MealPlanDetailProps {
 }
 
 export default function MealPlanDetail({ plan, onBack, onSubscribe }: MealPlanDetailProps) {
+  // Initialize shopping list download hook
+  const { generateAndDownload, isGenerating } = useShoppingListDownload();
+
   // Defensive null checks for provider data
   if (!plan.provider) {
     console.error('MealPlanDetail: Provider data is missing', plan);
@@ -90,7 +95,11 @@ export default function MealPlanDetail({ plan, onBack, onSubscribe }: MealPlanDe
           >
             {plan.is_free ? 'Get Free Plan' : 'Subscribe Now'}
           </button>
-          <button className="btn btn--outline btn--lg" style={{ marginTop: 'var(--space-8)' }}>
+          <button
+            className="btn btn--outline btn--lg"
+            style={{ marginTop: 'var(--space-8)' }}
+            onClick={() => generateSamplePDF(plan)}
+          >
             Download Sample
           </button>
         </div>
@@ -112,7 +121,13 @@ export default function MealPlanDetail({ plan, onBack, onSubscribe }: MealPlanDe
           <li>Nutritional information and serving sizes</li>
           <li>Tips for meal prep and storage</li>
         </ul>
-        <button className="btn btn--outline">Download Shopping List (PDF)</button>
+        <button
+          className="btn btn--outline"
+          onClick={() => generateAndDownload(plan.id, plan.title)}
+          disabled={isGenerating}
+        >
+          {isGenerating ? 'Generating...' : 'Download Shopping List (PDF)'}
+        </button>
       </div>
     </div>
   );

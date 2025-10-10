@@ -24,7 +24,10 @@ export const LoginSchema = z.object({
 export const UpdateProfileSchema = z.object({
   name: z.string().min(1).optional(),
   dietary_preferences: z.array(z.string()).optional()
-})
+}).refine(
+  (data) => data.name !== undefined || data.dietary_preferences !== undefined,
+  { message: 'At least one field must be provided for update' }
+)
 
 // Meal plan schemas
 export const MealPlanQuerySchema = z.object({

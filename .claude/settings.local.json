@@ -20,7 +20,8 @@
       "Bash(npm run dev:*)",
       "Bash(psql:*)",
       "Bash(lsof:*)",
-      "Bash(xargs kill:*)"
+      "Bash(xargs kill:*)",
+      "Bash(npm run lint:*)"
     ],
     "deny": [],
     "ask": []

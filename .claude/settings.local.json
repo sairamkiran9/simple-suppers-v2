@@ -21,7 +21,10 @@
       "Bash(psql:*)",
       "Bash(lsof:*)",
       "Bash(xargs kill:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(tree:*)",
+      "Bash(npx supabase status:*)",
+      "Bash(time curl:*)"
     ],
     "deny": [],
     "ask": []

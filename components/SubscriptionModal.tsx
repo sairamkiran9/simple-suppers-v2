@@ -8,9 +8,10 @@ interface SubscriptionModalProps {
   plan: ApiMealPlan | ApiMealPlanDetail | null;
   onClose: () => void;
   onConfirm: () => void;
+  isLoading?: boolean;
 }
 
-export default function SubscriptionModal({ isOpen, plan, onClose, onConfirm }: SubscriptionModalProps) {
+export default function SubscriptionModal({ isOpen, plan, onClose, onConfirm, isLoading = false }: SubscriptionModalProps) {
   if (!isOpen || !plan) return null;
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -50,11 +51,11 @@ export default function SubscriptionModal({ isOpen, plan, onClose, onConfirm }: 
           </div>
         </div>
         <div className="modal-footer">
-          <button className="btn btn--outline" onClick={onClose}>
+          <button className="btn btn--outline" onClick={onClose} disabled={isLoading}>
             Cancel
           </button>
-          <button className="btn btn--primary" onClick={onConfirm}>
-            {isFree ? 'Get Free Plan' : 'Subscribe Now'}
+          <button className="btn btn--primary" onClick={onConfirm} disabled={isLoading}>
+            {isLoading ? 'Processing...' : isFree ? 'Get Free Plan' : 'Subscribe Now'}
           </button>
         </div>
       </div>

@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getMealPlans, type GetMealPlansParams } from '@/lib/api/meal-plans'
 import type { ApiMealPlan } from '@/lib/api-types'
+import { useAuth } from '@/lib/auth-context'
 
 interface UseMealPlansOptions {
   /** Whether to automatically fetch data (default: true) */
@@ -58,6 +59,7 @@ export function useMealPlans(
   options: UseMealPlansOptions = {}
 ): UseMealPlansReturn {
   const { enabled = true } = options
+  const { isAuthenticated } = useAuth()
 
   const [data, setData] = useState<{ meal_plans: ApiMealPlan[]; total: number } | null>(null)
   const [isLoading, setIsLoading] = useState(enabled)
@@ -87,7 +89,7 @@ export function useMealPlans(
       setIsLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, JSON.stringify(filters)])
+  }, [enabled, isAuthenticated, JSON.stringify(filters)])
 
   const refetch = useCallback(() => {
     fetchMealPlans()

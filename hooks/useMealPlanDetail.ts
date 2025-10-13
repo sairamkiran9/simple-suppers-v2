@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { getMealPlanDetail } from '@/lib/api/meal-plans'
 import type { ApiMealPlanDetail } from '@/lib/api-types'
+import { useAuth } from '@/lib/auth-context'
 
 interface UseMealPlanDetailOptions {
   /** Whether to automatically fetch data (default: true) */
@@ -57,6 +58,7 @@ export function useMealPlanDetail(
   options: UseMealPlanDetailOptions = {}
 ): UseMealPlanDetailReturn {
   const { enabled = true } = options
+  const { isAuthenticated } = useAuth()
 
   const [data, setData] = useState<ApiMealPlanDetail | null>(null)
   const [isLoading, setIsLoading] = useState(enabled)
@@ -85,7 +87,7 @@ export function useMealPlanDetail(
     } finally {
       setIsLoading(false)
     }
-  }, [enabled, id])
+  }, [enabled, id, isAuthenticated])
 
   const refetch = useCallback(() => {
     fetchMealPlanDetail()

@@ -60,6 +60,8 @@ export interface ApiMealPlan {
   total_purchases: number
   provider: ApiMealPlanProvider
   preview_meals?: string[]
+  user_has_subscribed?: boolean
+  user_purchase_id?: string
 }
 
 export interface ApiMealPlansResponse {
@@ -102,6 +104,8 @@ export interface ApiMealPlanDetail {
   is_free?: boolean
   provider: ApiMealPlanProvider
   meal_plan_days: ApiMealPlanDay[]
+  user_has_subscribed?: boolean
+  user_purchase_id?: string
 }
 
 export interface ApiMealPlanDetailResponse {

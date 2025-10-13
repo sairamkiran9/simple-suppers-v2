@@ -10,11 +10,13 @@ interface MealPlanDetailProps {
   plan: ApiMealPlanDetail;
   onBack: () => void;
   onSubscribe: (planId: string) => void;
+  onUnsubscribe?: (purchaseId: string, planId: string) => void;
 }
 
-export default function MealPlanDetail({ plan, onBack, onSubscribe }: MealPlanDetailProps) {
+export default function MealPlanDetail({ plan, onBack, onSubscribe, onUnsubscribe }: MealPlanDetailProps) {
   // Initialize shopping list download hook
   const { generateAndDownload, isGenerating } = useShoppingListDownload();
+  const isSubscribed = plan.user_has_subscribed === true;
 
   // Defensive null checks for provider data
   if (!plan.provider) {
@@ -89,12 +91,26 @@ export default function MealPlanDetail({ plan, onBack, onSubscribe }: MealPlanDe
           <div className="meal-plan-price" style={{ fontSize: 'var(--font-size-3xl)', marginBottom: 'var(--space-16)' }}>
             {plan.is_free ? 'Free' : `$${plan.final_price.toFixed(2)}`}
           </div>
-          <button
-            className="btn btn--primary btn--lg"
-            onClick={() => onSubscribe(plan.id)}
-          >
-            {plan.is_free ? 'Get Free Plan' : 'Subscribe Now'}
-          </button>
+          {isSubscribed && plan.user_purchase_id && onUnsubscribe ? (
+            <>
+              <div style={{ marginBottom: 'var(--space-8)', padding: 'var(--space-12)', backgroundColor: 'var(--color-success-light)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+                <strong>You are subscribed to this plan</strong>
+              </div>
+              <button
+                className="btn btn--outline btn--lg"
+                onClick={() => onUnsubscribe(plan.user_purchase_id!, plan.id)}
+              >
+                Unsubscribe
+              </button>
+            </>
+          ) : (
+            <button
+              className="btn btn--primary btn--lg"
+              onClick={() => onSubscribe(plan.id)}
+            >
+              {plan.is_free ? 'Get Free Plan' : 'Subscribe Now'}
+            </button>
+          )}
           <button
             className="btn btn--outline btn--lg"
             style={{ marginTop: 'var(--space-8)' }}

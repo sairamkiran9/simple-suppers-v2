@@ -7,10 +7,12 @@ interface MealPlanCardProps {
   plan: ApiMealPlan;
   onViewDetails: (planId: string) => void;
   onSubscribe: (planId: string) => void;
+  onUnsubscribe?: (purchaseId: string, planId: string) => void;
 }
 
-export default function MealPlanCard({ plan, onViewDetails, onSubscribe }: MealPlanCardProps) {
+export default function MealPlanCard({ plan, onViewDetails, onSubscribe, onUnsubscribe }: MealPlanCardProps) {
   const stars = generateStars(plan.average_rating);
+  const isSubscribed = plan.user_has_subscribed === true;
 
   return (
     <div
@@ -22,6 +24,7 @@ export default function MealPlanCard({ plan, onViewDetails, onSubscribe }: MealP
           {plan.title}
           {plan.is_free && <span className="badge badge--free">Free</span>}
           {plan.is_featured && <span className="badge badge--featured">Featured</span>}
+          {isSubscribed && <span className="badge badge--featured">Subscribed</span>}
         </h3>
         <p className="meal-plan-provider">by {plan.provider.name || plan.provider.business_name || 'Unknown Provider'}</p>
         <div className="meal-plan-meta">
@@ -56,15 +59,27 @@ export default function MealPlanCard({ plan, onViewDetails, onSubscribe }: MealP
           >
             View Details
           </button>
-          <button
-            className="btn btn--primary btn--sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSubscribe(plan.id);
-            }}
-          >
-            Subscribe
-          </button>
+          {isSubscribed && plan.user_purchase_id && onUnsubscribe ? (
+            <button
+              className="btn btn--outline btn--sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onUnsubscribe(plan.user_purchase_id!, plan.id);
+              }}
+            >
+              Unsubscribe
+            </button>
+          ) : (
+            <button
+              className="btn btn--primary btn--sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSubscribe(plan.id);
+              }}
+            >
+              Subscribe
+            </button>
+          )}
         </div>
       </div>
     </div>

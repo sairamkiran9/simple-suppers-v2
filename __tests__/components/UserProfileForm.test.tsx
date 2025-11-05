@@ -226,7 +226,7 @@ describe('UserProfileForm', () => {
 
     const nameInput = screen.getByLabelText(/name/i)
     await user.clear(nameInput)
-    await user.type(nameInput, '')
+  // no typing needed — leave input empty to trigger validation
 
     const submitButton = screen.getByRole('button', { name: /save changes/i })
     await user.click(submitButton)

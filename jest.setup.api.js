@@ -1,6 +1,10 @@
 // Jest setup for API tests (Node environment)
 require('jest-extended')
 
+// Set test environment variables
+process.env.NEXTAUTH_SECRET = 'test-secret-key-that-is-at-least-32-characters-long'
+process.env.NODE_ENV = 'test'
+
 // Add globals for Node environment
 const { TextEncoder, TextDecoder } = require('util')
 global.TextEncoder = TextEncoder

@@ -5,6 +5,30 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { useMealPlans } from '@/hooks/useMealPlans'
 import { getMealPlans } from '@/lib/api/meal-plans'
+import { AuthProvider, useAuth } from '@/lib/auth-context'
+
+// Mock the auth context
+jest.mock('@/lib/auth-context', () => ({
+  AuthProvider: ({ children }: { children: React.ReactNode }) => children,
+  useAuth: jest.fn(),
+}))
+
+const createWrapper = (isAuthenticated = true) => {
+  // Mock the useAuth hook
+  ;(useAuth as jest.Mock).mockReturnValue({
+    user: isAuthenticated ? { id: '1', email: 'test@example.com' } : null,
+    isLoading: false,
+    isAuthenticated,
+    login: jest.fn(),
+    register: jest.fn(),
+    logout: jest.fn(),
+  })
+
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return <AuthProvider>{children}</AuthProvider>
+  }
+}
+
 
 jest.mock('@/lib/api/meal-plans')
 
@@ -45,7 +69,7 @@ describe('useMealPlans', () => {
 
     ;(getMealPlans as jest.Mock).mockResolvedValue(mockData)
 
-    const { result } = renderHook(() => useMealPlans())
+    const { result } = renderHook(() => useMealPlans(), { wrapper: createWrapper() } )
 
     expect(result.current.isLoading).toBe(true)
 
@@ -94,7 +118,7 @@ describe('useMealPlans', () => {
       () => new Promise((resolve) => setTimeout(resolve, 100))
     )
 
-    const { result } = renderHook(() => useMealPlans())
+    const { result } = renderHook(() => useMealPlans(), { wrapper: createWrapper() } )
 
     expect(result.current.isLoading).toBe(true)
     expect(result.current.data).toBe(null)
@@ -104,7 +128,7 @@ describe('useMealPlans', () => {
     const mockError = new Error('Failed to fetch')
     ;(getMealPlans as jest.Mock).mockRejectedValue(mockError)
 
-    const { result } = renderHook(() => useMealPlans())
+    const { result } = renderHook(() => useMealPlans(), { wrapper: createWrapper() } )
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -122,7 +146,7 @@ describe('useMealPlans', () => {
 
     ;(getMealPlans as jest.Mock).mockResolvedValue(mockData)
 
-    const { result } = renderHook(() => useMealPlans())
+    const { result } = renderHook(() => useMealPlans(), { wrapper: createWrapper() } )
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -164,7 +188,7 @@ describe('useMealPlans', () => {
 
     ;(getMealPlans as jest.Mock).mockResolvedValue(mockData)
 
-    const { result } = renderHook(() => useMealPlans())
+    const { result } = renderHook(() => useMealPlans(), { wrapper: createWrapper() } )
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)

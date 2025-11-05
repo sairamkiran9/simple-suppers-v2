@@ -346,14 +346,11 @@ describe('/api/purchases/history', () => {
     const mockPurchases = [
       {
         id: 'purchase-1',
+        meal_plan_id: '550e8400-e29b-41d4-a716-446655440000',
         purchase_price: 35.00,
         purchased_at: '2024-01-01T00:00:00Z',
-        status: 'completed',
-        expires_at: '2024-04-01T00:00:00Z',
         meal_plan: {
-          id: '550e8400-e29b-41d4-a716-446655440000',
-          title: 'Test Plan',
-          duration_days: 7
+          title: 'Test Plan'
         },
         provider: {
           business_name: 'Test Provider'
@@ -361,19 +358,21 @@ describe('/api/purchases/history', () => {
       },
       {
         id: 'purchase-2',
+        meal_plan_id: 'plan-2',
         purchase_price: 25.00,
         purchased_at: '2023-12-01T00:00:00Z',
-        status: 'completed',
-        expires_at: '2024-03-01T00:00:00Z',
         meal_plan: {
-          id: 'plan-2',
-          title: 'Another Plan',
-          duration_days: 14
+          title: 'Another Plan'
         },
         provider: {
           business_name: 'Another Provider'
         }
       }
+    ]
+
+    const mockTotalSpentData = [
+      { purchase_price: 35.00 },
+      { purchase_price: 25.00 }
     ]
 
     requireAuth.mockResolvedValue({
@@ -382,13 +381,23 @@ describe('/api/purchases/history', () => {
       user_type: 'user'
     })
 
-    const mockChain = createChainableMock()
-    mockChain.range.mockResolvedValue({
+    // Mock the first query (with pagination and joins)
+    const mockChain1 = createChainableMock()
+    mockChain1.range.mockResolvedValue({
       data: mockPurchases,
       error: null,
       count: 2
     })
-    supabase.from.mockReturnValue(mockChain)
+
+    // Mock the second query (for total spent calculation)
+    const mockChain2 = createChainableMock()
+    mockChain2.select.mockResolvedValue({
+      data: mockTotalSpentData,
+      error: null
+    })
+
+    // Return different mocks for different calls
+    supabase.from.mockReturnValueOnce(mockChain1).mockReturnValueOnce(mockChain2)
 
     const request = new NextRequest('http://localhost:3000/api/purchases/history', {
       headers: {
@@ -403,6 +412,7 @@ describe('/api/purchases/history', () => {
     expect(data.purchases).toHaveLength(2)
     expect(data.purchases[0].meal_plan_title).toBe('Test Plan')
     expect(data.total).toBe(2)
+    expect(data.total_spent).toBe(60.00)
   })
 
   it('should handle pagination correctly', async () => {
@@ -415,13 +425,22 @@ describe('/api/purchases/history', () => {
       user_type: 'user'
     })
 
-    const mockChain = createChainableMock()
-    mockChain.range.mockResolvedValue({
+    // Mock the first query (with pagination)
+    const mockChain1 = createChainableMock()
+    mockChain1.range.mockResolvedValue({
       data: [],
       error: null,
       count: 0
     })
-    supabase.from.mockReturnValue(mockChain)
+
+    // Mock the second query (for total spent)
+    const mockChain2 = createChainableMock()
+    mockChain2.select.mockResolvedValue({
+      data: [],
+      error: null
+    })
+
+    supabase.from.mockReturnValueOnce(mockChain1).mockReturnValueOnce(mockChain2)
 
     const request = new NextRequest('http://localhost:3000/api/purchases/history?limit=5&offset=10', {
       headers: {
@@ -432,7 +451,7 @@ describe('/api/purchases/history', () => {
     const response = await historyGET(request)
 
     expect(response.status).toBe(200)
-    expect(mockChain.range).toHaveBeenCalledWith(10, 14) // offset to offset+limit-1
+    expect(mockChain1.range).toHaveBeenCalledWith(10, 14) // offset to offset+limit-1
   })
 
   it('should validate limit parameter', async () => {
@@ -467,13 +486,22 @@ describe('/api/purchases/history', () => {
       user_type: 'user'
     })
 
-    const mockChain = createChainableMock()
-    mockChain.range.mockResolvedValue({
+    // Mock the first query (with pagination)
+    const mockChain1 = createChainableMock()
+    mockChain1.range.mockResolvedValue({
       data: [],
       error: null,
       count: 0
     })
-    supabase.from.mockReturnValue(mockChain)
+
+    // Mock the second query (for total spent)
+    const mockChain2 = createChainableMock()
+    mockChain2.select.mockResolvedValue({
+      data: [],
+      error: null
+    })
+
+    supabase.from.mockReturnValueOnce(mockChain1).mockReturnValueOnce(mockChain2)
 
     const request = new NextRequest('http://localhost:3000/api/purchases/history', {
       headers: {
@@ -487,6 +515,7 @@ describe('/api/purchases/history', () => {
     expect(response.status).toBe(200)
     expect(data.purchases).toHaveLength(0)
     expect(data.total).toBe(0)
+    expect(data.total_spent).toBe(0)
   })
 
 

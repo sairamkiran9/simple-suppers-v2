@@ -53,7 +53,7 @@ export async function login(credentials: LoginRequest): Promise<APIResponse<Auth
   const response = await apiClient.post<AuthResponse>('/auth/login', credentials)
 
   // Store token and user data on successful login
-  if (response.data) {
+  if (response.success && response.data) {
     setStoredUser(response.data.user, response.data.token)
   }
 
@@ -67,7 +67,7 @@ export async function register(data: RegisterRequest): Promise<APIResponse<AuthR
   const response = await apiClient.post<AuthResponse>('/auth/register', data)
 
   // Store token and user data on successful registration
-  if (response.data) {
+  if (response.success && response.data) {
     setStoredUser(response.data.user, response.data.token)
   }
 

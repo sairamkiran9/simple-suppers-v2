@@ -176,14 +176,14 @@ export default function Dashboard({ onViewMealPlan }: DashboardProps = {}) {
                             <Badge variant="secondary">
                               ${plan.purchase_price?.toFixed(2) || '0.00'}
                             </Badge>
-                            {plan.purchase_date && (
-                              <Badge variant="outline">
-                                {new Date(plan.purchase_date).toLocaleDateString()}
-                              </Badge>
-                            )}
                             {plan.purchased_at && (
                               <Badge variant="outline">
-                                {new Date(plan.purchased_at).toLocaleDateString()}
+                                Purchased: {new Date(plan.purchased_at).toLocaleDateString()}
+                              </Badge>
+                            )}
+                            {plan.expires_at && (
+                              <Badge variant="outline">
+                                Expires: {new Date(plan.expires_at).toLocaleDateString()}
                               </Badge>
                             )}
                           </div>

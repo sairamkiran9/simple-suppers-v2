@@ -63,13 +63,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const response = await apiLogin(credentials)
 
-      if (response.data) {
+      if (response.success && response.data) {
         setUser(response.data.user)
         toast.success('Successfully logged in!')
         return { success: true }
       }
 
-      return { success: false, error: 'Login failed' }
+      return { success: false, error: response.error?.message || 'Login failed' }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed'
       toast.error(errorMessage)
@@ -84,13 +84,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const response = await apiRegister(data)
 
-      if (response.data) {
+      if (response.success && response.data) {
         setUser(response.data.user)
         toast.success('Account created successfully!')
         return { success: true }
       }
 
-      return { success: false, error: 'Registration failed' }
+      return { success: false, error: response.error?.message || 'Registration failed' }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed'
       toast.error(errorMessage)

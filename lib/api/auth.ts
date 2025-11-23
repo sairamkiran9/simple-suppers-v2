@@ -13,7 +13,10 @@ export interface AuthUser {
 }
 
 // JWT configuration
-const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'development_secret_key_minimum_32_characters_long_for_mvp'
+if (!process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET.length < 32) {
+  throw new Error('NEXTAUTH_SECRET environment variable must be set to a secure value (minimum 32 characters) in production.')
+}
+const JWT_SECRET = process.env.NEXTAUTH_SECRET
 const JWT_EXPIRES_IN = '7d'
 
 // Password hashing utilities

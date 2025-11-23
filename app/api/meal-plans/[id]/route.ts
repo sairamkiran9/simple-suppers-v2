@@ -3,6 +3,7 @@ import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/erro
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { getCurrentUser, checkMealPlanAccess } from '@/lib/api/auth'
 import { getMealPlanById, updateMealPlanViews, trackEvent } from '@/lib/database-utils'
+import { supabaseAdmin } from '@/lib/supabase'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
@@ -31,15 +32,29 @@ export async function GET(request: NextRequest, { params }: { params: Params }) 
     // Track view
     await updateMealPlanViews(id)
 
-    // Check user access level
+    // Check user access level and subscription status
     let accessLevel: 'preview' | 'full' = 'preview'
     let userHasPurchased = false
+    let userPurchaseId: string | undefined = undefined
 
     if (user) {
       const accessCheck = await checkMealPlanAccess(user.id, id)
       if (accessCheck.hasAccess) {
         accessLevel = 'full'
         userHasPurchased = accessCheck.accessType === 'purchased'
+      }
+
+      // Get user's active purchase for this plan (using admin client for performance)
+      const { data: activePurchase } = await supabaseAdmin
+        .from('user_plan_purchases')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('meal_plan_id', id)
+        .eq('is_active', true)
+        .single()
+
+      if (activePurchase) {
+        userPurchaseId = activePurchase.id
       }
     } else if (mealPlan.is_free) {
       // Free plans have full access for everyone
@@ -101,7 +116,9 @@ export async function GET(request: NextRequest, { params }: { params: Params }) 
           profile_image_url: mealPlan.provider.profile_image_url,
           rating: mealPlan.provider.average_rating
         },
-        meal_plan_days: previewDays
+        meal_plan_days: previewDays,
+        user_has_subscribed: user ? !!userPurchaseId : undefined,
+        user_purchase_id: user ? userPurchaseId : undefined
       })
     }
 
@@ -145,7 +162,9 @@ export async function GET(request: NextRequest, { params }: { params: Params }) 
         profile_image_url: mealPlan.provider.profile_image_url,
         rating: mealPlan.provider.average_rating
       },
-      meal_plan_days: fullDays
+      meal_plan_days: fullDays,
+      user_has_subscribed: user ? !!userPurchaseId : undefined,
+      user_purchase_id: user ? userPurchaseId : undefined
     })
 
   } catch (error) {

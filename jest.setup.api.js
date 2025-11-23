@@ -1,10 +1,9 @@
 // Jest setup for API tests (Node environment)
 require('jest-extended')
 
-// Mock environment variables
-process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321'
-process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
-process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
+// Set test environment variables
+process.env.NEXTAUTH_SECRET = 'test-secret-key-that-is-at-least-32-characters-long'
+process.env.NODE_ENV = 'test'
 
 // Add globals for Node environment
 const { TextEncoder, TextDecoder } = require('util')

@@ -4,6 +4,7 @@ import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/erro
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { getCurrentUser } from '@/lib/api/auth'
 import { getMealPlans, trackEvent } from '@/lib/database-utils'
+import { supabaseAdmin } from '@/lib/supabase'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
@@ -88,6 +89,20 @@ export async function GET(request: NextRequest) {
     // Apply pagination
     const paginatedPlans = filteredPlans.slice(offset || 0, (offset || 0) + (limit || 20))
 
+    // Get user's active purchases if authenticated (using admin client for performance)
+    let userPurchases: Map<string, string> = new Map()
+    if (user) {
+      const { data: purchases } = await supabaseAdmin
+        .from('user_plan_purchases')
+        .select('id, meal_plan_id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+
+      if (purchases) {
+        userPurchases = new Map(purchases.map((p: { meal_plan_id: string; id: string }) => [p.meal_plan_id, p.id]))
+      }
+    }
+
     // Transform response to match API spec
     const responseData = paginatedPlans.map(plan => ({
       id: plan.id,
@@ -107,7 +122,9 @@ export async function GET(request: NextRequest) {
         name: plan.provider.business_name,
         profile_image_url: plan.provider.profile_image_url
       },
-      preview_meals: [] // We'll populate this with sample meal names
+      preview_meals: [], // We'll populate this with sample meal names
+      user_has_subscribed: user ? userPurchases.has(plan.id) : undefined,
+      user_purchase_id: user ? userPurchases.get(plan.id) : undefined
     }))
 
     // Track analytics event if user is present

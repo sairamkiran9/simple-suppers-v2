@@ -118,18 +118,27 @@ export async function getProviderByUserId(userId: string) {
 
 // Purchases
 export async function createPurchase(purchaseData: Partial<UserPlanPurchase>) {
-  const { data, error } = await supabase
+  console.log('[createPurchase] Starting purchase creation with data:', JSON.stringify(purchaseData, null, 2))
+
+  // Use admin client to bypass RLS policies since this is called from authenticated API routes
+  const { data, error } = await supabaseAdmin
     .from('user_plan_purchases')
     .insert(purchaseData)
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('[createPurchase] Error creating purchase:', error)
+    throw error
+  }
+
+  console.log('[createPurchase] Purchase created successfully:', data)
   return data as UserPlanPurchase
 }
 
 export async function getUserPurchases(userId: string) {
-  const { data, error } = await supabase
+  // Use admin client to bypass RLS policies since this is called from authenticated API routes
+  const { data, error } = await supabaseAdmin
     .from('user_plan_purchases')
     .select(`
       *,
@@ -157,6 +166,41 @@ export async function checkUserAccess(userId: string, mealPlanId: string) {
 
   if (error) return false
   return !!data
+}
+
+export async function cancelPurchase(purchaseId: string) {
+  console.log('[cancelPurchase] Canceling purchase:', purchaseId)
+
+  // Use admin client to bypass RLS policies since this is called from authenticated API routes
+  const { data, error } = await supabaseAdmin
+    .from('user_plan_purchases')
+    .update({
+      is_active: false
+    })
+    .eq('id', purchaseId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('[cancelPurchase] Error canceling purchase:', error)
+    throw error
+  }
+
+  console.log('[cancelPurchase] Purchase canceled successfully:', data)
+  return data as UserPlanPurchase
+}
+
+export async function getUserActivePurchase(userId: string, mealPlanId: string) {
+  const { data, error } = await supabase
+    .from('user_plan_purchases')
+    .select('id, meal_plan_id')
+    .eq('user_id', userId)
+    .eq('meal_plan_id', mealPlanId)
+    .eq('is_active', true)
+    .single()
+
+  if (error) return null
+  return data
 }
 
 // Reviews
@@ -196,7 +240,8 @@ export async function trackEvent(eventData: {
   session_id?: string
   metadata?: any
 }) {
-  const { error } = await supabase
+  // Use admin client to bypass RLS policies for analytics tracking
+  const { error } = await supabaseAdmin
     .from('platform_analytics')
     .insert(eventData)
 

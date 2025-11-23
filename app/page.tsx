@@ -13,11 +13,14 @@ import Dashboard from '@/components/Dashboard';
 import ProviderDashboard from '@/components/ProviderDashboard';
 import Footer from '@/components/Footer';
 import { ViewType } from '@/lib/types';
+import { Feed } from '@/components/Feed';
 import { showSuccessNotification } from '@/lib/utils';
 import { useMealPlans } from '@/hooks/useMealPlans';
 import { useMealPlanDetail } from '@/hooks/useMealPlanDetail';
 import { useAuth } from '@/lib/auth-context';
+import { createInstantPurchase, cancelSubscription } from '@/lib/api/user';
 import type { ApiMealPlan, ApiMealPlanDetail } from '@/lib/api-types';
+import { toast } from 'sonner';
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
@@ -26,15 +29,17 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [viewOrigin, setViewOrigin] = useState<'browse' | 'dashboard'>('browse');
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [dashboardKey, setDashboardKey] = useState(0);
 
   // Fetch meal plans for browse view
-  const { data: mealPlansData, isLoading: isLoadingPlans, error: plansError } = useMealPlans(
+  const { data: mealPlansData, isLoading: isLoadingPlans, error: plansError, refetch: refetchMealPlans } = useMealPlans(
     {},
     { enabled: currentView === 'browse' || currentView === 'detail' }
   );
 
   // Fetch selected meal plan detail
-  const { data: selectedMealPlan, isLoading: isLoadingDetail, error: detailError } = useMealPlanDetail(
+  const { data: selectedMealPlan, isLoading: isLoadingDetail, error: detailError, refetch: refetchMealPlanDetail } = useMealPlanDetail(
     selectedPlanId || '',
     { enabled: currentView === 'detail' && !!selectedPlanId }
   );
@@ -74,17 +79,75 @@ export default function Home() {
     setIsModalOpen(true);
   };
 
-  const handleConfirmSubscription = () => {
+  const handleConfirmSubscription = async () => {
+    if (!selectedPlanId) return;
+
     const plan = selectedMealPlan || mealPlansData?.meal_plans.find(p => p.id === selectedPlanId);
-    if (plan) {
-      showSuccessNotification(`Successfully subscribed to ${plan.title}!`);
-      setIsModalOpen(false);
-      setCurrentView('dashboard');
+    if (!plan) return;
+
+    setIsPurchasing(true);
+
+    try {
+      const response = await createInstantPurchase(selectedPlanId);
+
+      if (response.success && response.data) {
+        toast.success(response.data.message || `Successfully subscribed to ${plan.title}!`);
+        setIsModalOpen(false);
+        // Force dashboard to refresh by changing its key
+        setDashboardKey(prev => prev + 1);
+        // Refetch meal plans to update subscription status in browse view
+        refetchMealPlans();
+        if (selectedMealPlan) {
+          refetchMealPlanDetail();
+        }
+        setCurrentView('dashboard');
+      } else {
+        toast.error(response.error?.message || 'Failed to subscribe to meal plan');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      toast.error(errorMessage);
+    } finally {
+      setIsPurchasing(false);
     }
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+  };
+
+  const handleUnsubscribe = async (purchaseId: string, planId: string) => {
+    if (!window.confirm('Are you sure you want to unsubscribe from this meal plan?')) {
+      return;
+    }
+
+    setIsPurchasing(true);
+
+    try {
+      const response = await cancelSubscription(purchaseId);
+
+      if (response.success && response.data) {
+        toast.success(response.data.message || 'Successfully unsubscribed from meal plan');
+        // Force dashboard to refresh by changing its key
+        setDashboardKey(prev => prev + 1);
+        // Refetch data to update subscription status
+        if (currentView === 'browse') {
+          // Refetch meal plans to update the browse view
+          refetchMealPlans();
+        } else if (currentView === 'detail') {
+          // Refetch both the detail view and the meal plans list
+          refetchMealPlanDetail();
+          refetchMealPlans();
+        }
+      } else {
+        toast.error(response.error?.message || 'Failed to unsubscribe from meal plan');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      toast.error(errorMessage);
+    } finally {
+      setIsPurchasing(false);
+    }
   };
 
   // Handle keyboard navigation
@@ -146,6 +209,7 @@ export default function Home() {
                   plan={plan}
                   onViewDetails={handleViewDetails}
                   onSubscribe={handleSubscribe}
+                  onUnsubscribe={handleUnsubscribe}
                 />
               ))}
               {mealPlansData?.meal_plans.length === 0 && (
@@ -180,6 +244,7 @@ export default function Home() {
             plan={selectedMealPlan}
             onBack={() => handleViewChange(viewOrigin)}
             onSubscribe={handleSubscribe}
+            onUnsubscribe={handleUnsubscribe}
           />
         ) : null;
 
@@ -187,7 +252,18 @@ export default function Home() {
         return <ProviderDashboard />;
 
       case 'dashboard':
-        return <Dashboard onViewMealPlan={handleViewDetails} />;
+        return <Dashboard key={dashboardKey} onViewMealPlan={handleViewDetails} />;
+
+      case 'feed':
+        return (
+          <div className="container py-8">
+            <div className="page-header mb-8">
+              <h1>Community Feed</h1>
+              <p>Discover meal plans, tips, and updates from our community</p>
+            </div>
+            <Feed />
+          </div>
+        );
 
       default:
         return null;
@@ -217,6 +293,7 @@ export default function Home() {
         }
         onClose={handleCloseModal}
         onConfirm={handleConfirmSubscription}
+        isLoading={isPurchasing}
       />
 
       <AuthModal

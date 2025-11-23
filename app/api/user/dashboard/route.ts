@@ -38,11 +38,18 @@ export async function GET(request: NextRequest) {
     const purchasedPlans = purchases
       .filter(purchase => purchase?.meal_plan && purchase?.provider)
       .map(purchase => ({
-        id: purchase.meal_plan.id,
+        id: purchase.id, // This is the purchase ID, needed for unsubscribe functionality
         title: purchase.meal_plan.title,
         provider_name: purchase.provider.business_name,
         purchase_date: purchase.purchased_at,
-        purchase_price: purchase.purchase_price
+        purchased_at: purchase.purchased_at,
+        expires_at: purchase.expires_at,
+        purchase_price: purchase.purchase_price,
+        meal_plan: {
+          id: purchase.meal_plan.id,
+          title: purchase.meal_plan.title,
+          duration_days: purchase.meal_plan.duration_days
+        }
       }))
 
     // Transform free plans for response
@@ -52,13 +59,24 @@ export async function GET(request: NextRequest) {
       provider_name: plan.provider?.business_name || 'Unknown Provider'
     }))
 
+    // Calculate overview statistics
+    const activePlans = purchases.filter(p => p?.is_active).length
+    const freePlansUsed = user.subscription_tier === 'freemium' ?
+      Math.min(purchasedPlans.filter(p => p.purchase_price === 0).length, 3) : 0
+    const freePlansRemaining = user.subscription_tier === 'freemium' ?
+      Math.max(0, 3 - freePlansUsed) : 0
+
     return SuccessResponses.ok({
       user: {
         name: user.name,
         email: user.email,
         subscription_tier: user.subscription_tier,
-        free_plans_used: user.subscription_tier === 'freemium' ?
-          Math.min(purchasedPlans.filter(p => p.purchase_price === 0).length, 3) : 0
+        free_plans_used: freePlansUsed
+      },
+      overview: {
+        total_purchases: purchases.length,
+        active_plans: activePlans,
+        free_plans_remaining: freePlansRemaining
       },
       purchased_plans: purchasedPlans,
       free_plans: freePhansData,

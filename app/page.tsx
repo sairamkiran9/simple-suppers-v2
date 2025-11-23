@@ -13,6 +13,7 @@ import Dashboard from '@/components/Dashboard';
 import ProviderDashboard from '@/components/ProviderDashboard';
 import Footer from '@/components/Footer';
 import { ViewType } from '@/lib/types';
+import { Feed } from '@/components/Feed';
 import { showSuccessNotification } from '@/lib/utils';
 import { useMealPlans } from '@/hooks/useMealPlans';
 import { useMealPlanDetail } from '@/hooks/useMealPlanDetail';
@@ -252,6 +253,17 @@ export default function Home() {
 
       case 'dashboard':
         return <Dashboard key={dashboardKey} onViewMealPlan={handleViewDetails} />;
+
+      case 'feed':
+        return (
+          <div className="container py-8">
+            <div className="page-header mb-8">
+              <h1>Community Feed</h1>
+              <p>Discover meal plans, tips, and updates from our community</p>
+            </div>
+            <Feed />
+          </div>
+        );
 
       default:
         return null;

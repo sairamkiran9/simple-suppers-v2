@@ -162,6 +162,104 @@ export interface PlatformAnalytics {
   created_at: string
 }
 
+// Feed Types
+export interface FeedPost {
+  id: string
+  author_id: string
+  author_type: 'user' | 'provider' | 'admin'
+  post_type: 'meal_plan' | 'recipe_tip' | 'announcement'
+  title: string
+  content: string
+  image_url: string | null
+  related_meal_plan_id: string | null
+  likes_count: number
+  comments_count: number
+  shares_count: number
+  views_count: number
+  tags: string[]
+  is_pinned: boolean
+  is_featured: boolean
+  is_active: boolean
+  is_deleted: boolean
+  created_at: string
+  updated_at: string
+  published_at: string
+}
+
+export interface FeedLike {
+  id: string
+  post_id: string
+  user_id: string
+  created_at: string
+}
+
+export interface FeedComment {
+  id: string
+  post_id: string
+  user_id: string
+  content: string
+  parent_comment_id: string | null
+  likes_count: number
+  is_deleted: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface FeedCommentLike {
+  id: string
+  comment_id: string
+  user_id: string
+  created_at: string
+}
+
+export interface FeedFollow {
+  id: string
+  follower_user_id: string
+  following_provider_id: string
+  created_at: string
+}
+
+export interface FeedShare {
+  id: string
+  post_id: string
+  user_id: string | null
+  share_platform: string | null
+  created_at: string
+}
+
+// Extended feed types with joined data
+export interface FeedPostWithAuthor extends FeedPost {
+  author: {
+    id: string
+    name: string
+    email: string
+    user_type: string
+  }
+  provider?: {
+    id: string
+    business_name: string
+    profile_image_url: string | null
+    bio: string | null
+  }
+  meal_plan?: {
+    id: string
+    title: string
+    final_price: number
+    suggested_price: number
+    is_free: boolean
+  }
+  user_has_liked: boolean
+  user_is_following: boolean
+}
+
+export interface FeedCommentWithAuthor extends FeedComment {
+  author: {
+    id: string
+    name: string
+  }
+  user_has_liked: boolean
+}
+
 // Joined types for common queries
 export interface MealPlanWithProvider extends MealPlan {
   provider: MealPlanProvider
@@ -245,6 +343,36 @@ export type Database = {
         Row: PlatformAnalytics
         Insert: Omit<PlatformAnalytics, 'id' | 'created_at'>
         Update: Partial<Omit<PlatformAnalytics, 'id' | 'created_at'>>
+      }
+      feed_posts: {
+        Row: FeedPost
+        Insert: Omit<FeedPost, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<FeedPost, 'id' | 'created_at' | 'updated_at'>>
+      }
+      feed_likes: {
+        Row: FeedLike
+        Insert: Omit<FeedLike, 'id' | 'created_at'>
+        Update: Partial<Omit<FeedLike, 'id' | 'created_at'>>
+      }
+      feed_comments: {
+        Row: FeedComment
+        Insert: Omit<FeedComment, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<FeedComment, 'id' | 'created_at' | 'updated_at'>>
+      }
+      feed_comment_likes: {
+        Row: FeedCommentLike
+        Insert: Omit<FeedCommentLike, 'id' | 'created_at'>
+        Update: Partial<Omit<FeedCommentLike, 'id' | 'created_at'>>
+      }
+      feed_follows: {
+        Row: FeedFollow
+        Insert: Omit<FeedFollow, 'id' | 'created_at'>
+        Update: Partial<Omit<FeedFollow, 'id' | 'created_at'>>
+      }
+      feed_shares: {
+        Row: FeedShare
+        Insert: Omit<FeedShare, 'id' | 'created_at'>
+        Update: Partial<Omit<FeedShare, 'id' | 'created_at'>>
       }
     }
   }

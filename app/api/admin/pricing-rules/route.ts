@@ -3,7 +3,7 @@ import { CreatePricingRuleSchema, validateBody } from '@/lib/api/validation'
 import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAdmin } from '@/lib/api/auth'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     withRateLimit(request, user.id, user.user_type)
 
     // Get all pricing rules
-    const { data: pricingRules, error } = await supabase
+    const { data: pricingRules, error } = await supabaseAdmin!
       .from('admin_pricing_rules')
       .select(`
         id,
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     const final_price = basePrice - discount
 
     // Check if a rule for this duration already exists
-    const { data: existingRule } = await supabase
+    const { data: existingRule } = await supabaseAdmin!
       .from('admin_pricing_rules')
       .select('id')
       .eq('duration_days', duration_days)
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new pricing rule
-    const { data: pricingRule, error } = await supabase
+    const { data: pricingRule, error } = await supabaseAdmin!
       .from('admin_pricing_rules')
       .insert({
         duration_days,

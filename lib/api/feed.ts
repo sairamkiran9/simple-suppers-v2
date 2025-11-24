@@ -1,5 +1,5 @@
 // Feed API Client Functions
-import { supabase } from '../supabase'
+import { supabaseAdmin } from '../supabase'
 import type { FeedPost, FeedPostWithAuthor, FeedComment, FeedCommentWithAuthor } from '../database-types'
 
 // Get feed posts with pagination
@@ -12,7 +12,7 @@ export async function getFeedPosts(
 
   try {
     // Get basic posts first
-    const { data: posts, error } = await supabase
+    const { data: posts, error } = await supabaseAdmin
       .from('feed_posts')
       .select('*')
       .eq('is_active', true)
@@ -64,17 +64,17 @@ export async function createFeedPost(post: {
   related_meal_plan_id?: string
   tags?: string[]
 }): Promise<FeedPost> {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await supabaseAdmin.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
   // Get user type to set author_type
-  const { data: userData } = await supabase
+  const { data: userData } = await supabaseAdmin
     .from('users')
     .select('user_type')
     .eq('id', user.id)
     .single()
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('feed_posts')
     .insert({
       author_id: user.id,
@@ -90,11 +90,11 @@ export async function createFeedPost(post: {
 
 // Like/unlike a post
 export async function togglePostLike(postId: string): Promise<{ liked: boolean }> {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await supabaseAdmin.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
   // Check if already liked
-  const { data: existingLike } = await supabase
+  const { data: existingLike } = await supabaseAdmin
     .from('feed_likes')
     .select('id')
     .eq('post_id', postId)
@@ -103,7 +103,7 @@ export async function togglePostLike(postId: string): Promise<{ liked: boolean }
 
   if (existingLike) {
     // Unlike
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('feed_likes')
       .delete()
       .eq('id', existingLike.id)
@@ -112,7 +112,7 @@ export async function togglePostLike(postId: string): Promise<{ liked: boolean }
     return { liked: false }
   } else {
     // Like
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('feed_likes')
       .insert({
         post_id: postId,
@@ -129,7 +129,7 @@ export async function getPostComments(
   postId: string,
   userId?: string
 ): Promise<FeedCommentWithAuthor[]> {
-  const { data: comments, error } = await supabase
+  const { data: comments, error } = await supabaseAdmin
     .from('feed_comments')
     .select(`
       *,
@@ -147,7 +147,7 @@ export async function getPostComments(
       let user_has_liked = false
 
       if (userId) {
-        const { data: like } = await supabase
+        const { data: like } = await supabaseAdmin
           .from('feed_comment_likes')
           .select('id')
           .eq('comment_id', comment.id)
@@ -169,10 +169,10 @@ export async function getPostComments(
 
 // Add a comment to a post
 export async function addComment(postId: string, content: string): Promise<FeedComment> {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await supabaseAdmin.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('feed_comments')
     .insert({
       post_id: postId,
@@ -188,11 +188,11 @@ export async function addComment(postId: string, content: string): Promise<FeedC
 
 // Follow/unfollow a provider
 export async function toggleProviderFollow(providerId: string): Promise<{ following: boolean }> {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await supabaseAdmin.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
   // Check if already following
-  const { data: existingFollow } = await supabase
+  const { data: existingFollow } = await supabaseAdmin
     .from('feed_follows')
     .select('id')
     .eq('follower_user_id', user.id)
@@ -201,7 +201,7 @@ export async function toggleProviderFollow(providerId: string): Promise<{ follow
 
   if (existingFollow) {
     // Unfollow
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('feed_follows')
       .delete()
       .eq('id', existingFollow.id)
@@ -210,7 +210,7 @@ export async function toggleProviderFollow(providerId: string): Promise<{ follow
     return { following: false }
   } else {
     // Follow
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('feed_follows')
       .insert({
         follower_user_id: user.id,
@@ -224,7 +224,7 @@ export async function toggleProviderFollow(providerId: string): Promise<{ follow
 
 // Get trending providers
 export async function getTrendingProviders(limit = 10) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('meal_plan_providers')
     .select(`
       id,
@@ -246,9 +246,9 @@ export async function getTrendingProviders(limit = 10) {
 
 // Record a share
 export async function recordShare(postId: string, platform = 'copy_link'): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await supabaseAdmin.auth.getUser()
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('feed_shares')
     .insert({
       post_id: postId,

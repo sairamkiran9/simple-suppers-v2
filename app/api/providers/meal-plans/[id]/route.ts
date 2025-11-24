@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/api/auth'
 import { handleAPIError, ErrorResponses, SuccessResponses, NotFoundError, AuthorizationError, ValidationError } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import { UpdateMealPlanSchema, validateBody } from '@/lib/api/validation'
 
 /**
@@ -29,7 +29,7 @@ export async function PATCH(
     }
 
     // Get provider profile
-    const { data: provider, error: providerError } = await supabase
+    const { data: provider, error: providerError } = await supabaseAdmin
       .from('meal_plan_providers')
       .select('id')
       .eq('user_id', user.id)
@@ -50,7 +50,7 @@ export async function PATCH(
     const validatedData = validation.data
 
     // Check if meal plan exists and verify ownership
-    const { data: existingMealPlan, error: fetchError } = await supabase
+    const { data: existingMealPlan, error: fetchError } = await supabaseAdmin
       .from('meal_plans')
       .select('id, provider_id, is_deleted')
       .eq('id', params.id)
@@ -99,7 +99,7 @@ export async function PATCH(
     updateData.updated_at = new Date().toISOString()
 
     // Update meal plan in database
-    const { data: updatedMealPlan, error: updateError } = await supabase
+    const { data: updatedMealPlan, error: updateError } = await supabaseAdmin
       .from('meal_plans')
       .update(updateData)
       .eq('id', params.id)
@@ -166,7 +166,7 @@ export async function DELETE(
     }
 
     // Get provider profile
-    const { data: provider, error: providerError } = await supabase
+    const { data: provider, error: providerError } = await supabaseAdmin
       .from('meal_plan_providers')
       .select('id, total_plans')
       .eq('user_id', user.id)
@@ -177,7 +177,7 @@ export async function DELETE(
     }
 
     // Check if meal plan exists and verify ownership
-    const { data: existingMealPlan, error: fetchError } = await supabase
+    const { data: existingMealPlan, error: fetchError } = await supabaseAdmin
       .from('meal_plans')
       .select('id, provider_id, is_deleted')
       .eq('id', params.id)
@@ -198,7 +198,7 @@ export async function DELETE(
     }
 
     // Soft delete: set is_deleted=true, is_active=false, is_published=false
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await supabaseAdmin
       .from('meal_plans')
       .update({
         is_deleted: true,
@@ -213,7 +213,7 @@ export async function DELETE(
     }
 
     // Decrement provider's total_plans count
-    await supabase
+    await supabaseAdmin
       .from('meal_plan_providers')
       .update({
         total_plans: Math.max(0, provider.total_plans - 1)

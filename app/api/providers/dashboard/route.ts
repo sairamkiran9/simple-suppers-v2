@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get provider profile
-    const { data: provider } = await supabase
+    const { data: provider } = await supabaseAdmin
       .from('meal_plan_providers')
       .select('*')
       .eq('user_id', user.id)
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get provider's meal plans
-    const { data: mealPlans } = await supabase
+    const { data: mealPlans } = await supabaseAdmin
       .from('meal_plans')
       .select(`
         id,
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
 
     // Get recent purchases
-    const { data: recentPurchases } = await supabase
+    const { data: recentPurchases } = await supabaseAdmin
       .from('user_plan_purchases')
       .select(`
         id,
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     currentMonth.setDate(1)
     currentMonth.setHours(0, 0, 0, 0)
 
-    const { data: monthlyEarnings } = await supabase
+    const { data: monthlyEarnings } = await supabaseAdmin
       .from('user_plan_purchases')
       .select('provider_earnings')
       .eq('provider_id', provider.id)

@@ -3,7 +3,7 @@ import { GenerateShoppingListSchema, validateBody } from '@/lib/api/validation'
 import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 interface MealIngredient {
   name: string
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const { meal_plan_id, selected_days } = validation.data
 
     // Verify user has access to this meal plan
-    const { data: purchase } = await supabase
+    const { data: purchase } = await supabaseAdmin
       .from('user_plan_purchases')
       .select('id, meal_plan_id, expires_at')
       .eq('user_id', user.id)
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     if (!purchase) {
       // Check if it's a free plan
-      const { data: freePlan } = await supabase
+      const { data: freePlan } = await supabaseAdmin
         .from('meal_plans')
         .select('id')
         .eq('id', meal_plan_id)
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get meal plan details with meals
-    const { data: mealPlan, error: mealPlanError } = await supabase
+    const { data: mealPlan, error: mealPlanError } = await supabaseAdmin
       .from('meal_plans')
       .select(`
         id,
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     }, {})
 
     // Save shopping list to database
-    const { data: shoppingList, error: saveError } = await supabase
+    const { data: shoppingList, error: saveError } = await supabaseAdmin
       .from('shopping_lists')
       .insert({
         meal_plan_id,

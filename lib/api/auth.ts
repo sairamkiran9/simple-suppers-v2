@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
-import { supabase } from '../supabase'
+import { supabaseAdmin } from '../supabase'
 import { AuthenticationError, AuthorizationError } from './errors'
 
 export interface AuthUser {
@@ -75,7 +75,7 @@ export async function getCurrentUser(request: NextRequest): Promise<AuthUser | n
     const payload = verifyToken(token)
 
     // Fetch full user data from database
-    const { data: user, error } = await supabase
+    const { data: user, error } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', payload.id)
@@ -138,7 +138,7 @@ export async function checkMealPlanAccess(
   mealPlanId: string
 ): Promise<{ hasAccess: boolean; accessType: 'free' | 'purchased' | 'denied' }> {
   // First check if it's a free plan
-  const { data: mealPlan } = await supabase
+  const { data: mealPlan } = await supabaseAdmin
     .from('meal_plans')
     .select('is_free')
     .eq('id', mealPlanId)
@@ -152,7 +152,7 @@ export async function checkMealPlanAccess(
   }
 
   // Check if user has purchased the plan
-  const { data: purchase } = await supabase
+  const { data: purchase } = await supabaseAdmin
     .from('user_plan_purchases')
     .select('id, expires_at')
     .eq('user_id', userId)
@@ -174,7 +174,7 @@ export async function checkMealPlanOwnership(
   userId: string,
   mealPlanId: string
 ): Promise<boolean> {
-  const { data } = await supabase
+  const { data } = await supabaseAdmin
     .from('meal_plans')
     .select(`
       provider_id,
@@ -195,7 +195,7 @@ export async function registerUser(userData: {
   user_type: 'user' | 'provider'
 }): Promise<AuthUser> {
   // Check if user already exists
-  const { data: existingUser } = await supabase
+  const { data: existingUser } = await supabaseAdmin
     .from('users')
     .select('id')
     .eq('email', userData.email)
@@ -209,7 +209,7 @@ export async function registerUser(userData: {
   const hashedPassword = await hashPassword(userData.password)
 
   // Create user with hashed password
-  const { data: user, error } = await supabase
+  const { data: user, error } = await supabaseAdmin
     .from('users')
     .insert({
       email: userData.email,
@@ -239,7 +239,7 @@ export async function registerUser(userData: {
 // User login
 export async function loginUser(email: string, password: string): Promise<AuthUser> {
   // Fetch user with password hash
-  const { data: user, error } = await supabase
+  const { data: user, error } = await supabaseAdmin
     .from('users')
     .select('*')
     .eq('email', email)
@@ -283,7 +283,7 @@ export async function checkIsProvider(userId: string): Promise<{
     average_rating: number
   }
 }> {
-  const { data: provider, error } = await supabase
+  const { data: provider, error } = await supabaseAdmin
     .from('meal_plan_providers')
     .select('id, business_name, bio, profile_image_url, total_earnings, total_plans, average_rating')
     .eq('user_id', userId)

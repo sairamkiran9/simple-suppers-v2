@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server'
 import { handleAPIError, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
+import { UUIDSchema } from '@/lib/api/validation'
 
 export async function GET(
   request: NextRequest,
@@ -17,8 +18,14 @@ export async function GET(
 
     const { id } = params
 
+    // Validate UUID format
+    const uuidValidation = UUIDSchema.safeParse(id)
+    if (!uuidValidation.success) {
+      return ErrorResponses.validation('Shopping list ID must be a valid UUID')
+    }
+
     // First check if shopping list exists
-    const { data: shoppingList, error } = await supabase
+    const { data: shoppingList, error } = await supabaseAdmin
       .from('shopping_lists')
       .select(`
         id,

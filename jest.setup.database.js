@@ -1,6 +1,9 @@
 // Jest setup for database tests (Node environment with real Supabase connection)
 require('jest-extended')
 
+// Load environment variables from .env.local
+require('dotenv').config({ path: '.env.local' })
+
 // Add globals for Node environment
 const { TextEncoder, TextDecoder } = require('util')
 global.TextEncoder = TextEncoder

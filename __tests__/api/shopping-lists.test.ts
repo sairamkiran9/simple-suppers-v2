@@ -418,6 +418,6 @@ describe('/api/shopping-lists/[id]/download', () => {
 
     expect(response.status).toBe(400)
     expect(data.success).toBe(false)
-    expect(data.error).toContain('valid UUID')
+    expect(data.error.message).toContain('valid UUID')
   })
 })

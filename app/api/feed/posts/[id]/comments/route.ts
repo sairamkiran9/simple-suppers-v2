@@ -1,21 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPostComments, addComment } from '@/lib/api/feed'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Get user ID from auth header if present
-    const authHeader = request.headers.get('authorization')
+    // Get user ID from auth header if present (optional for feed comments)
     let userId: string | undefined
-    
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.substring(7)
-      const { data: { user } } = await supabase.auth.getUser(token)
-      userId = user?.id
-    }
+    // Note: Feed comments can be viewed without auth, so userId is optional
 
     const comments = await getPostComments(params.id, userId)
     return NextResponse.json(comments)

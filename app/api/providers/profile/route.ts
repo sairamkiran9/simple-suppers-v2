@@ -3,7 +3,7 @@ import { ProviderProfileSchema, validateBody } from '@/lib/api/validation'
 import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth, checkIsProvider } from '@/lib/api/auth'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get provider profile
-    const { data: provider, error } = await supabase
+    const { data: provider, error } = await supabaseAdmin
       .from('meal_plan_providers')
       .select(`
         id,
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     const { business_name, bio, profile_image_url } = validation.data
 
     // Check if provider profile already exists
-    const { data: existingProvider } = await supabase
+    const { data: existingProvider } = await supabaseAdmin
       .from('meal_plan_providers')
       .select('id')
       .eq('user_id', user.id)
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     let provider
     if (existingProvider) {
       // Update existing profile
-      const { data: updatedProvider, error } = await supabase
+      const { data: updatedProvider, error } = await supabaseAdmin
         .from('meal_plan_providers')
         .update({
           business_name,
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
       provider = updatedProvider
     } else {
       // Create new provider profile
-      const { data: newProvider, error } = await supabase
+      const { data: newProvider, error } = await supabaseAdmin
         .from('meal_plan_providers')
         .insert({
           user_id: user.id,

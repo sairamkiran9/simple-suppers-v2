@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import { z } from 'zod'
 
 // Force dynamic rendering for this API route
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     const { business_name, bio, profile_image_url } = validation.data
 
     // Check if user already has a provider profile
-    const { data: existingProvider } = await supabase
+    const { data: existingProvider } = await supabaseAdmin
       .from('meal_plan_providers')
       .select('id')
       .eq('user_id', user.id)
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create provider profile
-    const { data: provider, error } = await supabase
+    const { data: provider, error } = await supabaseAdmin
       .from('meal_plan_providers')
       .insert({
         user_id: user.id,
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     // Optionally update user_type to 'provider' for backward compatibility
     // You can uncomment this if you want to change the user_type
-    // await supabase
+    // await supabaseAdmin
     //   .from('users')
     //   .update({ user_type: 'provider' })
     //   .eq('id', user.id)

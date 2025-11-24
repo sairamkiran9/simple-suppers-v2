@@ -4,7 +4,7 @@ import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/erro
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
 import { stripe, dollarsToCents, calculateProviderEarnings } from '@/lib/api/payments'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const { meal_plan_id } = validation.data
 
     // Get meal plan details
-    const { data: mealPlan, error: planError } = await supabase
+    const { data: mealPlan, error: planError } = await supabaseAdmin
       .from('meal_plans')
       .select(`
         *,
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already purchased this plan
-    const { data: existingPurchase } = await supabase
+    const { data: existingPurchase } = await supabaseAdmin
       .from('user_plan_purchases')
       .select('id')
       .eq('user_id', user.id)

@@ -9,6 +9,15 @@ jest.mock('../../components/ThemeToggle', () => {
   }
 })
 
+// Mock the useAuth hook
+jest.mock('@/lib/auth-context', () => ({
+  useAuth: () => ({
+    user: null,
+    isAuthenticated: false,
+    logout: jest.fn(),
+  })
+}))
+
 describe('Navigation', () => {
   const mockOnViewChange = jest.fn();
   const mockOnLoginClick = jest.fn();
@@ -30,7 +39,7 @@ describe('Navigation', () => {
     expect(screen.getByText('Simple Suppers')).toBeInTheDocument();
     expect(screen.getByText('Browse Plans')).toBeInTheDocument();
     expect(screen.getByText('For Providers')).toBeInTheDocument();
-    expect(screen.getByText('My Account')).toBeInTheDocument();
+    expect(screen.getByText('Login')).toBeInTheDocument();
   });
 
   it('highlights the current active view', () => {

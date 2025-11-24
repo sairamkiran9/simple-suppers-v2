@@ -11,10 +11,20 @@ global.TextEncoder = TextEncoder
 global.TextDecoder = TextDecoder
 
 // Mock Web APIs for Node.js environment
-const { Request, Response, Headers } = require('undici')
-global.Request = Request
-global.Response = Response
-global.Headers = Headers
+// Use Node.js built-in fetch (Node 18+) or polyfill
+if (!global.fetch) {
+  const { fetch, Request, Response, Headers } = require('undici')
+  global.fetch = fetch
+  global.Request = Request
+  global.Response = Response
+  global.Headers = Headers
+}
+
+// Add ReadableStream polyfill if not available
+if (!global.ReadableStream) {
+  const { ReadableStream } = require('stream/web')
+  global.ReadableStream = ReadableStream
+}
 
 // Extend Jest matchers
 expect.extend({

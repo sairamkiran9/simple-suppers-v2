@@ -3,7 +3,7 @@ import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/erro
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
 import { getUserPurchases } from '@/lib/database-utils'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const purchases = await getUserPurchases(user.id) || []
 
     // Get free plans that user has accessed
-    const { data: freePlans } = await supabase
+    const { data: freePlans } = await supabaseAdmin
       .from('meal_plans')
       .select(`
         id,

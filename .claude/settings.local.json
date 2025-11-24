@@ -24,9 +24,7 @@
       "Bash(npm run lint:*)",
       "Bash(tree:*)",
       "Bash(npx supabase status:*)",
-      "Bash(time curl:*)",
-      "Bash(git -C /mnt/e/vscode/simple-suppers-v2 log --oneline -20)",
-      "Bash(cat:*)"
+      "Bash(time curl:*)"
     ],
     "deny": [],
     "ask": []

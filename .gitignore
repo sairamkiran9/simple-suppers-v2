@@ -3,6 +3,8 @@
 .amazonq/
 docs/
 temp*
+.agents/
+
 
 # dependencies
 /node_modules

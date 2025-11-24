@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { getPostComments, addComment } from '@/lib/api/feed'
+import { getPostComments, addComment } from '@/lib/api/feed.client'
 import type { FeedCommentWithAuthor } from '@/lib/database-types'
 
 export function useComments(postId: string) {

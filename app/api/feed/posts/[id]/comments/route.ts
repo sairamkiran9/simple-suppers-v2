@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPostComments, addComment } from '@/lib/api/feed'
+import { getPostComments, addComment } from '@/lib/api/feed.server'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(

@@ -1,19 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import Navigation from '@/components/Navigation';
 import Hero from '@/components/Hero';
 import Features from '@/components/Features';
 import Pricing from '@/components/Pricing';
 import MealPlanCard from '@/components/MealPlanCard';
-import MealPlanDetail from '@/components/MealPlanDetail';
-import SubscriptionModal from '@/components/SubscriptionModal';
-import AuthModal from '@/components/AuthModal';
-import Dashboard from '@/components/Dashboard';
-import ProviderDashboard from '@/components/ProviderDashboard';
 import Footer from '@/components/Footer';
 import { ViewType } from '@/lib/types';
-import { Feed } from '@/components/Feed';
 import { showSuccessNotification } from '@/lib/utils';
 import { useMealPlans } from '@/hooks/useMealPlans';
 import { useMealPlanDetail } from '@/hooks/useMealPlanDetail';
@@ -21,6 +16,35 @@ import { useAuth } from '@/lib/auth-context';
 import { createInstantPurchase, cancelSubscription } from '@/lib/api/user';
 import type { ApiMealPlan, ApiMealPlanDetail } from '@/lib/api-types';
 import { toast } from 'sonner';
+
+// Dynamically import heavy components that are only shown in specific views
+const MealPlanDetail = dynamic(() => import('@/components/MealPlanDetail'), {
+  loading: () => <div className="container"><p>Loading meal plan details...</p></div>,
+  ssr: false
+});
+
+const SubscriptionModal = dynamic(() => import('@/components/SubscriptionModal'), {
+  ssr: false
+});
+
+const AuthModal = dynamic(() => import('@/components/AuthModal'), {
+  ssr: false
+});
+
+const Dashboard = dynamic(() => import('@/components/Dashboard'), {
+  loading: () => <div className="container"><p>Loading dashboard...</p></div>,
+  ssr: false
+});
+
+const ProviderDashboard = dynamic(() => import('@/components/ProviderDashboard'), {
+  loading: () => <div className="container"><p>Loading provider dashboard...</p></div>,
+  ssr: false
+});
+
+const Feed = dynamic(() => import('@/components/Feed').then(mod => ({ default: mod.Feed })), {
+  loading: () => <div className="container"><p>Loading feed...</p></div>,
+  ssr: false
+});
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();

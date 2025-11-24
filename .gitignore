@@ -7,6 +7,7 @@ temp*
 .agents/
 .screenshots/
 .UNSPLASH.ENV
+.changelog/
 
 # dependencies
 /node_modules

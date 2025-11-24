@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
-import { togglePostLike, recordShare } from '@/lib/api/feed'
+import { togglePostLike, recordShare } from '@/lib/api/feed.client'
 import { useAuth } from '@/lib/auth-context'
 import { toast } from 'sonner'
 import { CommentsSection } from './CommentsSection'

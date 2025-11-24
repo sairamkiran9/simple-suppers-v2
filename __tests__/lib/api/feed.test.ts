@@ -1,13 +1,13 @@
-import { 
-  getFeedPosts, 
-  createFeedPost, 
-  togglePostLike, 
-  getPostComments, 
+import {
+  getFeedPosts,
+  createFeedPost,
+  togglePostLike,
+  getPostComments,
   addComment,
   toggleProviderFollow,
   getTrendingProviders,
   recordShare
-} from '@/lib/api/feed'
+} from '@/lib/api/feed.server'
 
 // Create chainable mock for Supabase
 const createChainableMock = () => ({

@@ -10,25 +10,40 @@ if (!supabaseUrl || !supabasePublishableKey) {
 export const supabase = createClient(supabaseUrl, supabasePublishableKey)
 
 // Server-side client for admin operations
+// NOTE: This will only work in server-side code (API routes, server components)
+// Client-side code should use the public supabase client or API routes
+
 const secretKey = process.env.SUPABASE_SECRET_KEY
 
-if (!secretKey) {
-  console.warn('SUPABASE_SECRET_KEY not found - admin operations will not work')
-}
+// Lazy initialization - only create when accessed
+let _supabaseAdmin: ReturnType<typeof createClient> | undefined = undefined
 
-const _supabaseAdmin = secretKey
-  ? createClient(supabaseUrl, secretKey)
-  : null
-
-// Helper to ensure supabaseAdmin is available
-function ensureSupabaseAdmin() {
-  if (!_supabaseAdmin) {
-    throw new Error('Supabase admin client not available - check SUPABASE_SECRET_KEY environment variable')
+function initSupabaseAdmin() {
+  if (_supabaseAdmin !== undefined) {
+    return _supabaseAdmin
   }
+
+  // Check if we're on server-side
+  if (typeof window !== 'undefined') {
+    throw new Error('supabaseAdmin can only be used on the server-side (API routes, server components)')
+  }
+
+  if (!secretKey || !supabaseUrl) {
+    throw new Error('SUPABASE_SECRET_KEY and NEXT_PUBLIC_SUPABASE_URL must be set - check environment variables')
+  }
+
+  _supabaseAdmin = createClient(supabaseUrl, secretKey)
   return _supabaseAdmin
 }
 
-export const supabaseAdmin = ensureSupabaseAdmin()
+// Export the admin client - will initialize on first access
+// Using a Proxy to enable lazy initialization while maintaining the same API
+export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient>, {
+  get(target, prop) {
+    const admin = initSupabaseAdmin()
+    return (admin as any)[prop]
+  }
+})
 
 // Type-safe database client
 export type { Database } from './database-types'

@@ -26,7 +26,9 @@
       "Bash(npx supabase status:*)",
       "Bash(time curl:*)",
       "Bash(git -C /mnt/e/vscode/simple-suppers-v2 log --oneline -20)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npx playwright install:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

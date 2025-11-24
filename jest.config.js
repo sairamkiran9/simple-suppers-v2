@@ -20,6 +20,7 @@ const customJestConfig = {
         '**/__tests__/components/**/*.(ts|tsx)',
         '**/__tests__/hooks/**/*.(ts|tsx)',
         '**/__tests__/lib/**/*.(ts|tsx)',
+        '**/__tests__/integration/**/*.(ts|tsx)',
       ],
       setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
       moduleNameMapper: {

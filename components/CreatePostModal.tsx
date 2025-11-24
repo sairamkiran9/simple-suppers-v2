@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './ui/form'
 import { useCreateFeedPost } from '@/hooks/useCreateFeedPost'
 import { toast } from 'sonner'
+import { Image as ImageIcon, X } from 'lucide-react'
+import { UnsplashImagePicker } from './UnsplashImagePicker'
 
 const createPostSchema = z.object({
   title: z.string().min(1, 'Title is required').max(255, 'Title too long'),
@@ -31,7 +33,9 @@ interface CreatePostModalProps {
 
 export function CreatePostModal({ open, onClose, onPostCreated }: CreatePostModalProps) {
   const { createPost, loading } = useCreateFeedPost()
-  
+  const [showImagePicker, setShowImagePicker] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<{ url: string; attribution: string } | null>(null)
+
   const form = useForm<CreatePostForm>({
     resolver: zodResolver(createPostSchema),
     defaultValues: {
@@ -42,6 +46,22 @@ export function CreatePostModal({ open, onClose, onPostCreated }: CreatePostModa
       tags: ''
     }
   })
+
+  const handleImageSelect = (imageUrl: string, attribution: string) => {
+    setSelectedImage({ url: imageUrl, attribution })
+    form.setValue('image_url', imageUrl)
+  }
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null)
+    form.setValue('image_url', '')
+  }
+
+  const handleClose = () => {
+    form.reset()
+    setSelectedImage(null)
+    onClose()
+  }
 
   const onSubmit = async (data: CreatePostForm) => {
     try {
@@ -60,6 +80,7 @@ export function CreatePostModal({ open, onClose, onPostCreated }: CreatePostModa
       if (post) {
         toast.success('Post created successfully!')
         form.reset()
+        setSelectedImage(null)
         onClose()
         onPostCreated()
       }
@@ -69,7 +90,8 @@ export function CreatePostModal({ open, onClose, onPostCreated }: CreatePostModa
   }
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px] bg-white dark:bg-gray-800">
         <DialogHeader>
           <DialogTitle>Create New Post</DialogTitle>
@@ -132,19 +154,37 @@ export function CreatePostModal({ open, onClose, onPostCreated }: CreatePostModa
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="image_url"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Image URL (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://example.com/image.jpg" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            {/* Image Picker */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Image (Optional)</label>
+              {selectedImage ? (
+                <div className="relative">
+                  <img
+                    src={selectedImage.url}
+                    alt="Selected"
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 p-1 bg-black/50 rounded-full text-white hover:bg-black/70"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <p className="text-xs text-gray-500 mt-1">{selectedImage.attribution}</p>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowImagePicker(true)}
+                  className="w-full h-32 border-dashed flex flex-col items-center justify-center gap-2"
+                >
+                  <ImageIcon className="w-8 h-8 text-gray-400" />
+                  <span className="text-sm text-gray-500">Click to add an image from Unsplash</span>
+                </Button>
               )}
-            />
+            </div>
 
             <FormField
               control={form.control}
@@ -161,7 +201,7 @@ export function CreatePostModal({ open, onClose, onPostCreated }: CreatePostModa
             />
 
             <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
@@ -172,5 +212,13 @@ export function CreatePostModal({ open, onClose, onPostCreated }: CreatePostModa
         </Form>
       </DialogContent>
     </Dialog>
+
+    {/* Unsplash Image Picker Modal */}
+    <UnsplashImagePicker
+      open={showImagePicker}
+      onClose={() => setShowImagePicker(false)}
+      onSelect={handleImageSelect}
+    />
+    </>
   )
 }

@@ -3,8 +3,10 @@
 .amazonq/
 docs/
 temp*
+.todo/
 .agents/
-
+.screenshots/
+.UNSPLASH.ENV
 
 # dependencies
 /node_modules

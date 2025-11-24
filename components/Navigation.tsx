@@ -42,7 +42,7 @@ export default function Navigation({ currentView, onViewChange, onLoginClick }: 
     { view: 'provider' as ViewType, label: 'For Providers', protected: true, requiresType: 'provider' },
   ];
 
-  // Add My Account only if user is logged in
+  // Add My Account only if user is logged in as a user
   if (isAuthenticated && user?.user_type === 'user') {
     navItems.push({ view: 'dashboard' as ViewType, label: 'My Account', protected: true, requiresType: 'user' });
   }
@@ -68,15 +68,14 @@ export default function Navigation({ currentView, onViewChange, onLoginClick }: 
               ))}
             </div>
             <div className="flex items-center gap-2">
-              {!isAuthenticated && (
+              {!isAuthenticated ? (
                 <button
                   className="nav-link"
                   onClick={onLoginClick}
                 >
                   Login
                 </button>
-              )}
-              {isAuthenticated && (
+              ) : (
                 <Button
                   variant="outline"
                   size="sm"

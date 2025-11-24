@@ -15,21 +15,21 @@ describe('Database Setup Validation', () => {
   describe('Environment Configuration', () => {
     it('should have the correct environment variables', () => {
       expect(process.env.NEXT_PUBLIC_SUPABASE_URL).toBeDefined()
-      expect(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY).toBeDefined()
+      expect(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY).toBeDefined()
 
-      // Only check service role key if it exists (optional for some setups)
-      if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        expect(process.env.SUPABASE_SERVICE_ROLE_KEY).toBeDefined()
+      // Only check secret key if it exists (optional for some setups)
+      if (process.env.SUPABASE_SECRET_KEY) {
+        expect(process.env.SUPABASE_SECRET_KEY).toBeDefined()
       }
     })
 
     it('should have valid environment variable formats', () => {
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
       expect(url).toMatch(/^https?:\/\//) // Should be a valid URL
-      expect(anonKey).toBeDefined()
-      expect(anonKey!.length).toBeGreaterThan(50) // Supabase anon keys should be substantial JWT tokens
+      expect(publishableKey).toBeDefined()
+      expect(publishableKey!.length).toBeGreaterThan(20) // Supabase publishable keys should be substantial
     })
   })
 

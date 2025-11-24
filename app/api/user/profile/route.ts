@@ -43,6 +43,10 @@ export async function PATCH(request: NextRequest) {
 
     // Update user profile in database with enhanced error logging
     // Using supabaseAdmin to bypass RLS since we already validated auth with requireAuth()
+    if (!supabaseAdmin) {
+      return ErrorResponses.internal('Admin client not available')
+    }
+    
     const { data: updatedUser, error } = await supabaseAdmin
       .from('users')
       .update(updatePayload)

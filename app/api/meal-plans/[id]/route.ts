@@ -45,17 +45,21 @@ export async function GET(request: NextRequest, { params }: { params: Params }) 
       }
 
       // Get user's active purchase for this plan (using admin client for performance)
-      const { data: activePurchase } = await supabaseAdmin
-        .from('user_plan_purchases')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('meal_plan_id', id)
-        .eq('is_active', true)
-        .single()
+      if (supabaseAdmin) {
+        const { data: activePurchase } = await supabaseAdmin
+          .from('user_plan_purchases')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('meal_plan_id', id)
+          .eq('is_active', true)
+          .single()
 
-      if (activePurchase) {
-        userPurchaseId = activePurchase.id
+        if (activePurchase) {
+          userPurchaseId = activePurchase.id
+        }
       }
+
+
     } else if (mealPlan.is_free) {
       // Free plans have full access for everyone
       accessLevel = 'full'

@@ -68,6 +68,10 @@ export async function getMealPlanById(id: string) {
 
 // User Management
 export async function createUser(userData: Partial<User>) {
+  if (!supabaseAdmin) {
+    throw new Error('Admin client not available')
+  }
+  
   const { data, error } = await supabaseAdmin
     .from('users')
     .insert(userData)
@@ -120,6 +124,10 @@ export async function getProviderByUserId(userId: string) {
 export async function createPurchase(purchaseData: Partial<UserPlanPurchase>) {
   console.log('[createPurchase] Starting purchase creation with data:', JSON.stringify(purchaseData, null, 2))
 
+  if (!supabaseAdmin) {
+    throw new Error('Admin client not available')
+  }
+
   // Use admin client to bypass RLS policies since this is called from authenticated API routes
   const { data, error } = await supabaseAdmin
     .from('user_plan_purchases')
@@ -137,6 +145,10 @@ export async function createPurchase(purchaseData: Partial<UserPlanPurchase>) {
 }
 
 export async function getUserPurchases(userId: string) {
+  if (!supabaseAdmin) {
+    throw new Error('Admin client not available')
+  }
+
   // Use admin client to bypass RLS policies since this is called from authenticated API routes
   const { data, error } = await supabaseAdmin
     .from('user_plan_purchases')
@@ -170,6 +182,10 @@ export async function checkUserAccess(userId: string, mealPlanId: string) {
 
 export async function cancelPurchase(purchaseId: string) {
   console.log('[cancelPurchase] Canceling purchase:', purchaseId)
+
+  if (!supabaseAdmin) {
+    throw new Error('Admin client not available')
+  }
 
   // Use admin client to bypass RLS policies since this is called from authenticated API routes
   const { data, error } = await supabaseAdmin
@@ -240,6 +256,11 @@ export async function trackEvent(eventData: {
   session_id?: string
   metadata?: any
 }) {
+  if (!supabaseAdmin) {
+    console.warn('Admin client not available for analytics tracking')
+    return
+  }
+
   // Use admin client to bypass RLS policies for analytics tracking
   const { error } = await supabaseAdmin
     .from('platform_analytics')

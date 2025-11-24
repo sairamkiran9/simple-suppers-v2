@@ -12,7 +12,7 @@ export function useFeedPosts() {
   const loadPosts = async (pageNum = 0, append = false) => {
     try {
       setLoading(true)
-      const result = await getFeedPosts(pageNum)
+      const result = await getFeedPosts(pageNum, 20)
       
       if (append) {
         setPosts(prev => [...prev, ...result.posts])

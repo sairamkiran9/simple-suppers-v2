@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
 
     // Get user's active purchases if authenticated (using admin client for performance)
     let userPurchases: Map<string, string> = new Map()
-    if (user) {
+    if (user && supabaseAdmin) {
       const { data: purchases } = await supabaseAdmin
         .from('user_plan_purchases')
         .select('id, meal_plan_id')

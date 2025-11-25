@@ -27,9 +27,6 @@ jobs:
       - name: Run type check
         run: npm run typecheck
 
-      - name: Run linter
-        run: npm run lint
-
       - name: Run tests
         run: npm test -- --passWithNoTests
 

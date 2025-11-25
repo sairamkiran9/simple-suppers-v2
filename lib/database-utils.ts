@@ -46,7 +46,7 @@ export async function getMealPlans(filters?: {
 }
 
 export async function getMealPlanById(id: string) {
-  const { data, error } = await supabase
+  const { data, error} = await supabaseAdmin
     .from('meal_plans')
     .select(`
       *,

@@ -1,8 +1,33 @@
 import { NextRequest } from 'next/server'
 import { POST as toggleLikePOST } from '@/app/api/feed/posts/[id]/like/route'
 
+// Mock Supabase
+jest.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getUser: jest.fn()
+    },
+    from: jest.fn(() => ({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn(() => Promise.resolve({ data: null, error: null }))
+    }))
+  },
+  supabaseAdmin: {
+    auth: {
+      getUser: jest.fn()
+    },
+    from: jest.fn(() => ({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockReturnThis(),
+      single: jest.fn(() => Promise.resolve({ data: null, error: null }))
+    }))
+  }
+}))
+
 // Mock feed API functions
-jest.mock('@/lib/api/feed', () => ({
+jest.mock('@/lib/api/feed.server', () => ({
   togglePostLike: jest.fn()
 }))
 
@@ -13,7 +38,7 @@ describe('/api/feed/posts/[id]/like', () => {
 
   describe('POST /api/feed/posts/[id]/like', () => {
     it('should toggle like successfully', async () => {
-      const { togglePostLike } = require('@/lib/api/feed')
+      const { togglePostLike } = require('@/lib/api/feed.server')
       
       togglePostLike.mockResolvedValue({ liked: true })
 
@@ -30,7 +55,7 @@ describe('/api/feed/posts/[id]/like', () => {
     })
 
     it('should handle unlike operation', async () => {
-      const { togglePostLike } = require('@/lib/api/feed')
+      const { togglePostLike } = require('@/lib/api/feed.server')
       
       togglePostLike.mockResolvedValue({ liked: false })
 
@@ -46,7 +71,7 @@ describe('/api/feed/posts/[id]/like', () => {
     })
 
     it('should handle authentication errors', async () => {
-      const { togglePostLike } = require('@/lib/api/feed')
+      const { togglePostLike } = require('@/lib/api/feed.server')
       
       togglePostLike.mockRejectedValue(new Error('Not authenticated'))
 
@@ -62,7 +87,7 @@ describe('/api/feed/posts/[id]/like', () => {
     })
 
     it('should handle invalid post ID', async () => {
-      const { togglePostLike } = require('@/lib/api/feed')
+      const { togglePostLike } = require('@/lib/api/feed.server')
       
       togglePostLike.mockRejectedValue(new Error('Post not found'))
 
@@ -76,7 +101,7 @@ describe('/api/feed/posts/[id]/like', () => {
     })
 
     it('should handle database errors gracefully', async () => {
-      const { togglePostLike } = require('@/lib/api/feed')
+      const { togglePostLike } = require('@/lib/api/feed.server')
       
       togglePostLike.mockRejectedValue(new Error('Database connection failed'))
 

@@ -2,7 +2,7 @@ import { renderHook, act, waitFor } from '@testing-library/react'
 import { useFeedPosts } from '@/hooks/useFeedPosts'
 
 // Mock the feed API
-jest.mock('@/lib/api/feed', () => ({
+jest.mock('@/lib/api/feed.client', () => ({
   getFeedPosts: jest.fn()
 }))
 
@@ -12,7 +12,7 @@ describe('useFeedPosts', () => {
   })
 
   it('should initialize with loading state', () => {
-    const { getFeedPosts } = require('@/lib/api/feed')
+    const { getFeedPosts } = require('@/lib/api/feed.client')
     getFeedPosts.mockImplementation(() => new Promise(() => {})) // Never resolves
 
     const { result } = renderHook(() => useFeedPosts())
@@ -24,7 +24,7 @@ describe('useFeedPosts', () => {
   })
 
   it('should load posts successfully', async () => {
-    const { getFeedPosts } = require('@/lib/api/feed')
+    const { getFeedPosts } = require('@/lib/api/feed.client')
     
     const mockPosts = [
       {
@@ -52,7 +52,7 @@ describe('useFeedPosts', () => {
   })
 
   it('should handle API errors', async () => {
-    const { getFeedPosts } = require('@/lib/api/feed')
+    const { getFeedPosts } = require('@/lib/api/feed.client')
     
     getFeedPosts.mockRejectedValue(new Error('API Error'))
 
@@ -67,7 +67,7 @@ describe('useFeedPosts', () => {
   })
 
   it('should load more posts when loadMore is called', async () => {
-    const { getFeedPosts } = require('@/lib/api/feed')
+    const { getFeedPosts } = require('@/lib/api/feed.client')
     
     const initialPosts = [
       { id: 'post-1', title: 'Post 1', author: { name: 'Author 1' } }
@@ -107,7 +107,7 @@ describe('useFeedPosts', () => {
   })
 
   it('should not load more when already loading', async () => {
-    const { getFeedPosts } = require('@/lib/api/feed')
+    const { getFeedPosts } = require('@/lib/api/feed.client')
     
     getFeedPosts.mockImplementation(() => new Promise(() => {})) // Never resolves
 
@@ -122,7 +122,7 @@ describe('useFeedPosts', () => {
   })
 
   it('should not load more when hasMore is false', async () => {
-    const { getFeedPosts } = require('@/lib/api/feed')
+    const { getFeedPosts } = require('@/lib/api/feed.client')
     
     getFeedPosts.mockResolvedValue({
       posts: [{ id: 'post-1', title: 'Post 1', author: { name: 'Author' } }],
@@ -146,7 +146,7 @@ describe('useFeedPosts', () => {
   })
 
   it('should refresh posts when refresh is called', async () => {
-    const { getFeedPosts } = require('@/lib/api/feed')
+    const { getFeedPosts } = require('@/lib/api/feed.client')
     
     const initialPosts = [
       { id: 'post-1', title: 'Post 1', author: { name: 'Author 1' } }
@@ -186,7 +186,7 @@ describe('useFeedPosts', () => {
   })
 
   it('should handle string errors gracefully', async () => {
-    const { getFeedPosts } = require('@/lib/api/feed')
+    const { getFeedPosts } = require('@/lib/api/feed.client')
     
     getFeedPosts.mockRejectedValue('String error')
 

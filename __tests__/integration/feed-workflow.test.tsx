@@ -13,7 +13,7 @@ jest.mock('@/hooks/useCreateFeedPost', () => ({
 }))
 
 // Mock the feed API
-jest.mock('@/lib/api/feed', () => ({
+jest.mock('@/lib/api/feed.client', () => ({
   togglePostLike: jest.fn(),
   addComment: jest.fn(),
   recordShare: jest.fn()
@@ -116,7 +116,7 @@ describe('Feed Workflow Integration', () => {
     const { useFeedPosts } = require('@/hooks/useFeedPosts')
     const { useCreateFeedPost } = require('@/hooks/useCreateFeedPost')
     const { useAuth } = require('@/lib/auth-context')
-    const { togglePostLike } = require('@/lib/api/feed')
+    const { togglePostLike } = require('@/lib/api/feed.client')
 
     // Mock authenticated user
     useAuth.mockReturnValue({
@@ -235,7 +235,7 @@ describe('Feed Workflow Integration', () => {
     const { useFeedPosts } = require('@/hooks/useFeedPosts')
     const { useCreateFeedPost } = require('@/hooks/useCreateFeedPost')
     const { useAuth } = require('@/lib/auth-context')
-    const { togglePostLike } = require('@/lib/api/feed')
+    const { togglePostLike } = require('@/lib/api/feed.client')
     const { toast } = require('sonner')
 
     // Mock unauthenticated user
@@ -399,7 +399,7 @@ describe('Feed Workflow Integration', () => {
     const { useFeedPosts } = require('@/hooks/useFeedPosts')
     const { useCreateFeedPost } = require('@/hooks/useCreateFeedPost')
     const { useAuth } = require('@/lib/auth-context')
-    const { recordShare } = require('@/lib/api/feed')
+    const { recordShare } = require('@/lib/api/feed.client')
     const { toast } = require('sonner')
 
     useAuth.mockReturnValue({

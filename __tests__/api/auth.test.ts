@@ -23,6 +23,14 @@ jest.mock('@/lib/supabase', () => ({
       signInWithPassword: jest.fn()
     },
     from: jest.fn(() => createChainableMock())
+  },
+  supabaseAdmin: {
+    auth: {
+      signUp: jest.fn(),
+      signInWithPassword: jest.fn(),
+      getUser: jest.fn()
+    },
+    from: jest.fn(() => createChainableMock())
   }
 }))
 

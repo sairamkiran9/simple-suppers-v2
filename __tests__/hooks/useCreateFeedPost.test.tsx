@@ -2,7 +2,7 @@ import { renderHook, act, waitFor } from '@testing-library/react'
 import { useCreateFeedPost } from '@/hooks/useCreateFeedPost'
 
 // Mock the feed API
-jest.mock('@/lib/api/feed', () => ({
+jest.mock('@/lib/api/feed.client', () => ({
   createFeedPost: jest.fn()
 }))
 
@@ -20,7 +20,7 @@ describe('useCreateFeedPost', () => {
   })
 
   it('should create a post successfully', async () => {
-    const { createFeedPost } = require('@/lib/api/feed')
+    const { createFeedPost } = require('@/lib/api/feed.client')
     
     const mockPost = {
       id: 'post-1',
@@ -55,7 +55,7 @@ describe('useCreateFeedPost', () => {
   })
 
   it('should handle loading state during creation', async () => {
-    const { createFeedPost } = require('@/lib/api/feed')
+    const { createFeedPost } = require('@/lib/api/feed.client')
     
     let resolvePromise: (value: any) => void
     const promise = new Promise((resolve) => {
@@ -89,7 +89,7 @@ describe('useCreateFeedPost', () => {
   })
 
   it('should handle API errors', async () => {
-    const { createFeedPost } = require('@/lib/api/feed')
+    const { createFeedPost } = require('@/lib/api/feed.client')
     
     createFeedPost.mockRejectedValue(new Error('Not authenticated'))
 
@@ -111,7 +111,7 @@ describe('useCreateFeedPost', () => {
   })
 
   it('should handle string errors', async () => {
-    const { createFeedPost } = require('@/lib/api/feed')
+    const { createFeedPost } = require('@/lib/api/feed.client')
     
     createFeedPost.mockRejectedValue('String error')
 
@@ -133,7 +133,7 @@ describe('useCreateFeedPost', () => {
   })
 
   it('should create posts with all optional fields', async () => {
-    const { createFeedPost } = require('@/lib/api/feed')
+    const { createFeedPost } = require('@/lib/api/feed.client')
     
     const mockPost = { id: 'post-1' }
     createFeedPost.mockResolvedValue(mockPost)
@@ -162,7 +162,7 @@ describe('useCreateFeedPost', () => {
   })
 
   it('should handle different post types', async () => {
-    const { createFeedPost } = require('@/lib/api/feed')
+    const { createFeedPost } = require('@/lib/api/feed.client')
     
     createFeedPost.mockResolvedValue({ id: 'post-1' })
 
@@ -192,7 +192,7 @@ describe('useCreateFeedPost', () => {
   })
 
   it('should clear error on successful creation after previous error', async () => {
-    const { createFeedPost } = require('@/lib/api/feed')
+    const { createFeedPost } = require('@/lib/api/feed.client')
     
     // First call fails
     createFeedPost.mockRejectedValueOnce(new Error('First error'))

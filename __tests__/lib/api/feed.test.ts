@@ -1,13 +1,13 @@
-import { 
-  getFeedPosts, 
-  createFeedPost, 
-  togglePostLike, 
-  getPostComments, 
+import {
+  getFeedPosts,
+  createFeedPost,
+  togglePostLike,
+  getPostComments,
   addComment,
   toggleProviderFollow,
   getTrendingProviders,
   recordShare
-} from '@/lib/api/feed'
+} from '@/lib/api/feed.server'
 
 // Create chainable mock for Supabase
 const createChainableMock = () => ({
@@ -33,6 +33,12 @@ jest.mock('@/lib/supabase', () => ({
       getUser: jest.fn()
     },
     from: jest.fn(() => createChainableMock())
+  },
+  supabaseAdmin: {
+    auth: {
+      getUser: jest.fn()
+    },
+    from: jest.fn(() => createChainableMock())
   }
 }))
 
@@ -43,7 +49,7 @@ describe('Feed API Client', () => {
 
   describe('getFeedPosts', () => {
     it('should fetch posts with pagination', async () => {
-      const { supabase } = require('@/lib/supabase')
+      const { supabaseAdmin } = require('@/lib/supabase')
       const mockChain = createChainableMock()
       
       mockChain.range.mockResolvedValue({
@@ -59,7 +65,7 @@ describe('Feed API Client', () => {
         error: null
       })
       
-      supabase.from.mockReturnValue(mockChain)
+      supabaseAdmin.from.mockReturnValue(mockChain)
 
       const result = await getFeedPosts(0, 10)
 
@@ -71,7 +77,7 @@ describe('Feed API Client', () => {
     })
 
     it('should handle database errors', async () => {
-      const { supabase } = require('@/lib/supabase')
+      const { supabaseAdmin } = require('@/lib/supabase')
       const mockChain = createChainableMock()
       
       const error = new Error('Database error')
@@ -80,7 +86,7 @@ describe('Feed API Client', () => {
         error
       })
       
-      supabase.from.mockReturnValue(mockChain)
+      supabaseAdmin.from.mockReturnValue(mockChain)
 
       await expect(getFeedPosts()).rejects.toThrow(error)
     })
@@ -88,10 +94,10 @@ describe('Feed API Client', () => {
 
   describe('createFeedPost', () => {
     it('should create a new post when authenticated', async () => {
-      const { supabase } = require('@/lib/supabase')
+      const { supabaseAdmin } = require('@/lib/supabase')
       const mockChain = createChainableMock()
       
-      supabase.auth.getUser.mockResolvedValue({
+      supabaseAdmin.auth.getUser.mockResolvedValue({
         data: { user: { id: 'user-123' } }
       })
       
@@ -113,7 +119,7 @@ describe('Feed API Client', () => {
         error: null
       })
       
-      supabase.from
+      supabaseAdmin.from
         .mockReturnValueOnce(mockChain) // First call for user lookup
         .mockReturnValueOnce(insertMock) // Second call for insert
 
@@ -134,9 +140,9 @@ describe('Feed API Client', () => {
     })
 
     it('should throw error when not authenticated', async () => {
-      const { supabase } = require('@/lib/supabase')
+      const { supabaseAdmin } = require('@/lib/supabase')
       
-      supabase.auth.getUser.mockResolvedValue({
+      supabaseAdmin.auth.getUser.mockResolvedValue({
         data: { user: null }
       })
 
@@ -150,9 +156,9 @@ describe('Feed API Client', () => {
 
   describe('togglePostLike', () => {
     it('should like a post when not already liked', async () => {
-      const { supabase } = require('@/lib/supabase')
+      const { supabaseAdmin } = require('@/lib/supabase')
       
-      supabase.auth.getUser.mockResolvedValue({
+      supabaseAdmin.auth.getUser.mockResolvedValue({
         data: { user: { id: 'user-123' } }
       })
 
@@ -167,7 +173,7 @@ describe('Feed API Client', () => {
         error: null
       })
 
-      supabase.from
+      supabaseAdmin.from
         .mockReturnValueOnce(selectMock)
         .mockReturnValueOnce(insertMock)
 
@@ -181,9 +187,9 @@ describe('Feed API Client', () => {
     })
 
     it('should unlike a post when already liked', async () => {
-      const { supabase } = require('@/lib/supabase')
+      const { supabaseAdmin } = require('@/lib/supabase')
       
-      supabase.auth.getUser.mockResolvedValue({
+      supabaseAdmin.auth.getUser.mockResolvedValue({
         data: { user: { id: 'user-123' } }
       })
 
@@ -195,7 +201,7 @@ describe('Feed API Client', () => {
 
       const deleteMock = createDeleteMock()
 
-      supabase.from
+      supabaseAdmin.from
         .mockReturnValueOnce(selectMock)
         .mockReturnValueOnce(deleteMock)
 
@@ -208,7 +214,7 @@ describe('Feed API Client', () => {
 
   describe('getPostComments', () => {
     it('should fetch comments for a post', async () => {
-      const { supabase } = require('@/lib/supabase')
+      const { supabaseAdmin } = require('@/lib/supabase')
       const mockChain = createChainableMock()
       
       mockChain.order.mockResolvedValue({
@@ -222,7 +228,7 @@ describe('Feed API Client', () => {
         error: null
       })
       
-      supabase.from.mockReturnValue(mockChain)
+      supabaseAdmin.from.mockReturnValue(mockChain)
 
       const result = await getPostComments('post-1')
 
@@ -234,9 +240,9 @@ describe('Feed API Client', () => {
 
   describe('addComment', () => {
     it('should add a comment when authenticated', async () => {
-      const { supabase } = require('@/lib/supabase')
+      const { supabaseAdmin } = require('@/lib/supabase')
       
-      supabase.auth.getUser.mockResolvedValue({
+      supabaseAdmin.auth.getUser.mockResolvedValue({
         data: { user: { id: 'user-123' } }
       })
 
@@ -251,7 +257,7 @@ describe('Feed API Client', () => {
         error: null
       })
 
-      supabase.from.mockReturnValue(mockChain)
+      supabaseAdmin.from.mockReturnValue(mockChain)
 
       const result = await addComment('post-1', 'New comment')
 
@@ -266,9 +272,9 @@ describe('Feed API Client', () => {
 
   describe('toggleProviderFollow', () => {
     it('should follow a provider when not already following', async () => {
-      const { supabase } = require('@/lib/supabase')
+      const { supabaseAdmin } = require('@/lib/supabase')
       
-      supabase.auth.getUser.mockResolvedValue({
+      supabaseAdmin.auth.getUser.mockResolvedValue({
         data: { user: { id: 'user-123' } }
       })
 
@@ -283,7 +289,7 @@ describe('Feed API Client', () => {
         error: null
       })
 
-      supabase.from
+      supabaseAdmin.from
         .mockReturnValueOnce(selectMock)
         .mockReturnValueOnce(insertMock)
 
@@ -295,7 +301,7 @@ describe('Feed API Client', () => {
 
   describe('getTrendingProviders', () => {
     it('should fetch trending providers', async () => {
-      const { supabase } = require('@/lib/supabase')
+      const { supabaseAdmin } = require('@/lib/supabase')
       const mockChain = createChainableMock()
       
       mockChain.limit.mockResolvedValue({
@@ -310,7 +316,7 @@ describe('Feed API Client', () => {
         error: null
       })
       
-      supabase.from.mockReturnValue(mockChain)
+      supabaseAdmin.from.mockReturnValue(mockChain)
 
       const result = await getTrendingProviders(5)
 
@@ -322,9 +328,9 @@ describe('Feed API Client', () => {
 
   describe('recordShare', () => {
     it('should record a share event', async () => {
-      const { supabase } = require('@/lib/supabase')
+      const { supabaseAdmin } = require('@/lib/supabase')
       
-      supabase.auth.getUser.mockResolvedValue({
+      supabaseAdmin.auth.getUser.mockResolvedValue({
         data: { user: { id: 'user-123' } }
       })
 
@@ -333,7 +339,7 @@ describe('Feed API Client', () => {
         error: null
       })
 
-      supabase.from.mockReturnValue(mockChain)
+      supabaseAdmin.from.mockReturnValue(mockChain)
 
       await recordShare('post-1', 'twitter')
 
@@ -345,9 +351,9 @@ describe('Feed API Client', () => {
     })
 
     it('should record share without user when not authenticated', async () => {
-      const { supabase } = require('@/lib/supabase')
+      const { supabaseAdmin } = require('@/lib/supabase')
       
-      supabase.auth.getUser.mockResolvedValue({
+      supabaseAdmin.auth.getUser.mockResolvedValue({
         data: { user: null }
       })
 
@@ -356,7 +362,7 @@ describe('Feed API Client', () => {
         error: null
       })
 
-      supabase.from.mockReturnValue(mockChain)
+      supabaseAdmin.from.mockReturnValue(mockChain)
 
       await recordShare('post-1')
 

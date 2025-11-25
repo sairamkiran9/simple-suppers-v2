@@ -46,7 +46,7 @@ export async function getMealPlans(filters?: {
 }
 
 export async function getMealPlanById(id: string) {
-  const { data, error } = await supabase
+  const { data, error} = await supabaseAdmin
     .from('meal_plans')
     .select(`
       *,
@@ -71,10 +71,10 @@ export async function createUser(userData: Partial<User>) {
   if (!supabaseAdmin) {
     throw new Error('Admin client not available')
   }
-  
+
   const { data, error } = await supabaseAdmin
     .from('users')
-    .insert(userData)
+    .insert(userData as any)
     .select()
     .single()
 
@@ -99,7 +99,7 @@ export async function getUserById(id: string) {
 export async function createProvider(providerData: Partial<MealPlanProvider>) {
   const { data, error } = await supabase
     .from('meal_plan_providers')
-    .insert(providerData)
+    .insert(providerData as any)
     .select()
     .single()
 
@@ -131,7 +131,7 @@ export async function createPurchase(purchaseData: Partial<UserPlanPurchase>) {
   // Use admin client to bypass RLS policies since this is called from authenticated API routes
   const { data, error } = await supabaseAdmin
     .from('user_plan_purchases')
-    .insert(purchaseData)
+    .insert(purchaseData as any)
     .select()
     .single()
 
@@ -223,7 +223,7 @@ export async function getUserActivePurchase(userId: string, mealPlanId: string) 
 export async function createReview(reviewData: Partial<MealPlanReview>) {
   const { data, error } = await supabase
     .from('meal_plan_reviews')
-    .insert(reviewData)
+    .insert(reviewData as any)
     .select()
     .single()
 
@@ -293,7 +293,7 @@ export async function updateMealPlanViews(mealPlanId: string) {
     const { error } = await supabase
       .from('meal_plans')
       .update({
-        total_views: currentData.total_views + 1,
+        total_views: (currentData.total_views || 0) + 1,
         updated_at: new Date().toISOString()
       })
       .eq('id', mealPlanId)

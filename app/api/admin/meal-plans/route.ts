@@ -3,7 +3,7 @@ import { AdminMealPlansQuerySchema, validateQuery } from '@/lib/api/validation'
 import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAdmin } from '@/lib/api/auth'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const { status, provider_id, search, limit, offset } = validation.data
 
     // Build query
-    let query = supabase
+    let query = supabaseAdmin!
       .from('meal_plans')
       .select(`
         id,

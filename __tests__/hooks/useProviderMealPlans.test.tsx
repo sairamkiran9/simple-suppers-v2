@@ -3,7 +3,7 @@
  * Manages provider meal plans data fetching and state
  */
 
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { useProviderMealPlans } from '@/hooks/useProviderMealPlans'
 import * as providerApi from '@/lib/api/provider'
 
@@ -158,7 +158,9 @@ describe('useProviderMealPlans', () => {
     ;(providerApi.getProviderMealPlans as jest.Mock).mockResolvedValue(updatedData)
 
     // Trigger refetch
-    result.current.refetch()
+    act(() => {
+      result.current.refetch()
+    })
 
     await waitFor(() => {
       expect(providerApi.getProviderMealPlans).toHaveBeenCalledTimes(1)

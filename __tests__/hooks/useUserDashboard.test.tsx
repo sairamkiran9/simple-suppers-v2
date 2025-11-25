@@ -3,7 +3,7 @@
  * Manages user dashboard data fetching and state
  */
 
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { useUserDashboard } from '@/hooks/useUserDashboard'
 import * as userApi from '@/lib/api/user'
 
@@ -123,7 +123,9 @@ describe('useUserDashboard', () => {
     ;(userApi.getUserDashboard as jest.Mock).mockResolvedValue(updatedData)
 
     // Trigger refetch
-    result.current.refetch()
+    act(() => {
+      result.current.refetch()
+    })
 
     await waitFor(() => {
       expect(userApi.getUserDashboard).toHaveBeenCalledTimes(1)

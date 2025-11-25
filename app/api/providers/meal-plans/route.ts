@@ -3,7 +3,7 @@ import { CreateMealPlanSchema, validateBody, ProviderMealPlansQuerySchema, valid
 import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get provider profile
-    const { data: provider } = await supabase
+    const { data: provider } = await supabaseAdmin
       .from('meal_plan_providers')
       .select('id')
       .eq('user_id', user.id)
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     const { status, limit, offset } = validation.data
 
     // Build query
-    let query = supabase
+    let query = supabaseAdmin!
       .from('meal_plans')
       .select(`
         id,
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get provider profile
-    const { data: provider } = await supabase
+    const { data: provider } = await supabaseAdmin
       .from('meal_plan_providers')
       .select('id, total_plans')
       .eq('user_id', user.id)
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
     const final_price = is_free ? 0 : suggested_price * 0.95 // 5% platform discount
 
     // Create meal plan
-    const { data: mealPlan, error: mealPlanError } = await supabase
+    const { data: mealPlan, error: mealPlanError } = await supabaseAdmin
       .from('meal_plans')
       .insert({
         provider_id: provider.id,
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
 
     // Create meal plan days and meals
     for (const dayData of meal_plan_days) {
-      const { data: mealPlanDay, error: dayError } = await supabase
+      const { data: mealPlanDay, error: dayError } = await supabaseAdmin
         .from('meal_plan_days')
         .insert({
           meal_plan_id: mealPlan.id,
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
 
       // Create meals for this day
       for (const mealData of dayData.meals) {
-        const { error: mealError } = await supabase
+        const { error: mealError } = await supabaseAdmin
           .from('meals')
           .insert({
             meal_plan_day_id: mealPlanDay.id,
@@ -215,10 +215,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Update provider total_plans count
-    await supabase
+    await supabaseAdmin
       .from('meal_plan_providers')
       .update({
-        total_plans: provider.total_plans + 1
+        total_plans: (provider.total_plans || 0) + 1
       })
       .eq('id', provider.id)
 

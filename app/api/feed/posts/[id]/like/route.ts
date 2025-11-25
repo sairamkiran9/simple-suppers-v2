@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { togglePostLike } from '@/lib/api/feed'
+import { togglePostLike } from '@/lib/api/feed.server'
 
 export async function POST(
   request: NextRequest,

@@ -3,7 +3,7 @@ import { PurchaseHistoryQuerySchema, validateQuery } from '@/lib/api/validation'
 import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const { limit, offset } = validation.data
 
     // Get user's purchase history with pagination
-    const { data: purchases, error, count } = await supabase
+    const { data: purchases, error, count } = await supabaseAdmin
       .from('user_plan_purchases')
       .select(`
         id,
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate total spent
-    const { data: allPurchases } = await supabase
+    const { data: allPurchases } = await supabaseAdmin
       .from('user_plan_purchases')
       .select('purchase_price')
       .eq('user_id', user.id)

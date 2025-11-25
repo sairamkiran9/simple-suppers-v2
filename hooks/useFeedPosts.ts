@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getFeedPosts } from '@/lib/api/feed'
+import { getFeedPosts } from '@/lib/api/feed.client'
 import type { FeedPostWithAuthor } from '@/lib/database-types'
 
 export function useFeedPosts() {

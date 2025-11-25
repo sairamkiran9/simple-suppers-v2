@@ -2,7 +2,19 @@ import { NextRequest } from 'next/server'
 import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAdmin } from '@/lib/api/auth'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
+import { UserPlanPurchase } from '@/lib/database-types'
+
+// Type for the specific fields we're selecting from monthly revenue query
+type MonthlyRevenuePurchase = Pick<UserPlanPurchase, 'purchase_price' | 'platform_fee' | 'purchased_at'>
+
+// Helper to ensure supabaseAdmin is available
+function ensureSupabaseAdmin() {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client not available - check SUPABASE_SECRET_KEY environment variable')
+  }
+  return supabaseAdmin
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,34 +33,34 @@ export async function GET(request: NextRequest) {
       revenueResult
     ] = await Promise.all([
       // Total users
-      supabase
+      ensureSupabaseAdmin()
         .from('users')
         .select('id', { count: 'exact' })
         .eq('is_active', true)
         .eq('is_deleted', false),
 
       // Total providers
-      supabase
+      ensureSupabaseAdmin()
         .from('meal_plan_providers')
         .select('id', { count: 'exact' })
         .eq('is_active', true)
         .eq('is_deleted', false),
 
       // Total meal plans
-      supabase
+      ensureSupabaseAdmin()
         .from('meal_plans')
         .select('id', { count: 'exact' })
         .eq('is_active', true)
         .eq('is_deleted', false),
 
       // Total purchases
-      supabase
+      ensureSupabaseAdmin()
         .from('user_plan_purchases')
         .select('id', { count: 'exact' })
         .eq('status', 'completed'),
 
       // Total revenue
-      supabase
+      ensureSupabaseAdmin()
         .from('user_plan_purchases')
         .select('purchase_price, platform_fee')
         .eq('status', 'completed')
@@ -60,11 +72,11 @@ export async function GET(request: NextRequest) {
     const totalMealPlans = mealPlansResult.count || 0
     const totalPurchases = purchasesResult.count || 0
 
-    const totalRevenue = (revenueResult.data || []).reduce((sum, purchase) => sum + purchase.purchase_price, 0)
-    const platformRevenue = (revenueResult.data || []).reduce((sum, purchase) => sum + purchase.platform_fee, 0)
+    const totalRevenue = (revenueResult.data || []).reduce((sum: number, purchase: any) => sum + purchase.purchase_price, 0)
+    const platformRevenue = (revenueResult.data || []).reduce((sum: number, purchase: any) => sum + purchase.platform_fee, 0)
 
     // Get recent activity
-    const { data: recentUsers } = await supabase
+    const { data: recentUsers } = await ensureSupabaseAdmin()
       .from('users')
       .select('id, name, email, user_type, created_at')
       .eq('is_active', true)
@@ -72,7 +84,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(10)
 
-    const { data: recentMealPlans } = await supabase
+    const { data: recentMealPlans } = await ensureSupabaseAdmin()
       .from('meal_plans')
       .select(`
         id,
@@ -86,7 +98,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(10)
 
-    const { data: recentPurchases } = await supabase
+    const { data: recentPurchases } = await ensureSupabaseAdmin()
       .from('user_plan_purchases')
       .select(`
         id,
@@ -105,14 +117,14 @@ export async function GET(request: NextRequest) {
     const sixMonthsAgo = new Date(currentDate)
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
 
-    const { data: monthlyRevenue } = await supabase
+    const { data: monthlyRevenue } = await ensureSupabaseAdmin()
       .from('user_plan_purchases')
       .select('purchase_price, platform_fee, purchased_at')
       .eq('status', 'completed')
       .gte('purchased_at', sixMonthsAgo.toISOString())
 
     // Group revenue by month
-    const monthlyData = (monthlyRevenue || []).reduce((acc: any, purchase) => {
+    const monthlyData = ((monthlyRevenue || []) as MonthlyRevenuePurchase[]).reduce((acc: any, purchase) => {
       const month = new Date(purchase.purchased_at).toISOString().substring(0, 7) // YYYY-MM
       if (!acc[month]) {
         acc[month] = { total: 0, platform: 0, purchases: 0 }
@@ -133,7 +145,7 @@ export async function GET(request: NextRequest) {
         platform_revenue: platformRevenue
       },
       recent_activity: {
-        users: (recentUsers || []).map(user => ({
+        users: (recentUsers || []).map((user: any) => ({
           id: user.id,
           name: user.name,
           email: user.email,

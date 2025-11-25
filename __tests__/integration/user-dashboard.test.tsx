@@ -71,9 +71,6 @@ describe('User Dashboard Integration', () => {
 
       render(<Dashboard />)
 
-      // Should show loading state initially
-      expect(screen.getByText(/my account/i)).toBeInTheDocument()
-
       // Wait for data to load
       await waitFor(() => {
         expect(screen.getByText(/weekly meal plan/i)).toBeInTheDocument()

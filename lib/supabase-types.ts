@@ -7,30 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
@@ -41,7 +21,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           new_data: Json | null
           old_data: Json | null
           target_id: string | null
@@ -54,7 +34,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           new_data?: Json | null
           old_data?: Json | null
           target_id?: string | null
@@ -67,7 +47,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           new_data?: Json | null
           old_data?: Json | null
           target_id?: string | null
@@ -125,6 +105,295 @@ export type Database = {
           {
             foreignKeyName: "admin_pricing_rules_created_by_fkey"
             columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_comment_likes: {
+        Row: {
+          comment_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_comment_likes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "feed_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_comment_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_comments: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          is_deleted: boolean | null
+          likes_count: number | null
+          parent_comment_id: string | null
+          post_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          is_deleted?: boolean | null
+          likes_count?: number | null
+          parent_comment_id?: string | null
+          post_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_deleted?: boolean | null
+          likes_count?: number | null
+          parent_comment_id?: string | null
+          post_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "feed_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_follows: {
+        Row: {
+          created_at: string | null
+          follower_user_id: string
+          following_provider_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          follower_user_id: string
+          following_provider_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          follower_user_id?: string
+          following_provider_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_follows_follower_user_id_fkey"
+            columns: ["follower_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_follows_following_provider_id_fkey"
+            columns: ["following_provider_id"]
+            isOneToOne: false
+            referencedRelation: "meal_plan_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_likes: {
+        Row: {
+          created_at: string | null
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_posts: {
+        Row: {
+          author_id: string
+          author_type: string
+          comments_count: number | null
+          content: string
+          created_at: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          is_deleted: boolean | null
+          is_featured: boolean | null
+          is_pinned: boolean | null
+          likes_count: number | null
+          post_type: string
+          published_at: string | null
+          related_meal_plan_id: string | null
+          shares_count: number | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          views_count: number | null
+        }
+        Insert: {
+          author_id: string
+          author_type: string
+          comments_count?: number | null
+          content: string
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_deleted?: boolean | null
+          is_featured?: boolean | null
+          is_pinned?: boolean | null
+          likes_count?: number | null
+          post_type: string
+          published_at?: string | null
+          related_meal_plan_id?: string | null
+          shares_count?: number | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          views_count?: number | null
+        }
+        Update: {
+          author_id?: string
+          author_type?: string
+          comments_count?: number | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_deleted?: boolean | null
+          is_featured?: boolean | null
+          is_pinned?: boolean | null
+          likes_count?: number | null
+          post_type?: string
+          published_at?: string | null
+          related_meal_plan_id?: string | null
+          shares_count?: number | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          views_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_posts_related_meal_plan_id_fkey"
+            columns: ["related_meal_plan_id"]
+            isOneToOne: false
+            referencedRelation: "meal_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_shares: {
+        Row: {
+          created_at: string | null
+          id: string
+          post_id: string
+          share_platform: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          post_id: string
+          share_platform?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          post_id?: string
+          share_platform?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_shares_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_shares_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -427,7 +696,7 @@ export type Database = {
           created_at: string | null
           event_type: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           meal_plan_id: string | null
           metadata: Json | null
           provider_id: string | null
@@ -439,7 +708,7 @@ export type Database = {
           created_at?: string | null
           event_type: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           meal_plan_id?: string | null
           metadata?: Json | null
           provider_id?: string | null
@@ -451,7 +720,7 @@ export type Database = {
           created_at?: string | null
           event_type?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           meal_plan_id?: string | null
           metadata?: Json | null
           provider_id?: string | null
@@ -619,6 +888,7 @@ export type Database = {
           is_active: boolean | null
           is_deleted: boolean | null
           name: string
+          password_hash: string | null
           subscription_tier: string | null
           updated_at: string | null
           user_type: string | null
@@ -633,6 +903,7 @@ export type Database = {
           is_active?: boolean | null
           is_deleted?: boolean | null
           name: string
+          password_hash?: string | null
           subscription_tier?: string | null
           updated_at?: string | null
           user_type?: string | null
@@ -647,6 +918,7 @@ export type Database = {
           is_active?: boolean | null
           is_deleted?: boolean | null
           name?: string
+          password_hash?: string | null
           subscription_tier?: string | null
           updated_at?: string | null
           user_type?: string | null
@@ -787,11 +1059,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
 } as const
-

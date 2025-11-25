@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getFeedPosts, createFeedPost } from '@/lib/api/feed'
-import { supabase } from '@/lib/supabase'
+import { getFeedPosts, createFeedPost } from '@/lib/api/feed.server'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,15 +8,9 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '0')
     const limit = parseInt(searchParams.get('limit') || '20')
     
-    // Get user ID from auth header if present
-    const authHeader = request.headers.get('authorization')
+    // Get user ID from auth header if present (optional for feed)
     let userId: string | undefined
-    
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.substring(7)
-      const { data: { user } } = await supabase.auth.getUser(token)
-      userId = user?.id
-    }
+    // Note: Feed can be viewed without auth
 
     const result = await getFeedPosts(page, limit, userId)
     

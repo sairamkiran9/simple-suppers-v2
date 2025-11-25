@@ -26,6 +26,15 @@ jest.mock('@/lib/supabase', () => ({
         }))
       }))
     }))
+  },
+  supabaseAdmin: {
+    from: jest.fn(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          single: jest.fn(() => Promise.resolve({ data: null, error: null }))
+        }))
+      }))
+    }))
   }
 }))
 
@@ -315,7 +324,7 @@ describe('/api/shopping-lists/[id]/download', () => {
   })
 
   it('should download shopping list PDF successfully', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
 
     const mockShoppingList = {
       id: 'list-1',
@@ -335,7 +344,7 @@ describe('/api/shopping-lists/[id]/download', () => {
       }
     }
 
-    supabase.from().select().eq().single.mockResolvedValue({
+    supabaseAdmin.from().select().eq().single.mockResolvedValue({
       data: mockShoppingList,
       error: null
     })
@@ -355,9 +364,9 @@ describe('/api/shopping-lists/[id]/download', () => {
   })
 
   it('should return 404 for non-existent shopping list', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
 
-    supabase.from().select().eq().single.mockResolvedValue({
+    supabaseAdmin.from().select().eq().single.mockResolvedValue({
       data: null,
       error: { message: 'No rows returned' }
     })
@@ -377,7 +386,7 @@ describe('/api/shopping-lists/[id]/download', () => {
   })
 
   it('should return 403 for unauthorized access', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
 
     const mockShoppingList = {
       id: 'list-1',
@@ -387,7 +396,7 @@ describe('/api/shopping-lists/[id]/download', () => {
       meal_plan: { title: 'Test Plan' }
     }
 
-    supabase.from().select().eq().single.mockResolvedValue({
+    supabaseAdmin.from().select().eq().single.mockResolvedValue({
       data: mockShoppingList,
       error: null
     })

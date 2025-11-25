@@ -67,8 +67,8 @@ export async function GET(request: NextRequest) {
     const totalMealPlans = mealPlans?.length || 0
     const publishedPlans = mealPlans?.filter(plan => plan.is_published && plan.is_active).length || 0
     const draftPlans = mealPlans?.filter(plan => !plan.is_published).length || 0
-    const totalViews = mealPlans?.reduce((sum, plan) => sum + plan.total_views, 0) || 0
-    const totalSales = mealPlans?.reduce((sum, plan) => sum + plan.total_purchases, 0) || 0
+    const totalViews = mealPlans?.reduce((sum, plan) => sum + (plan.total_views || 0), 0) || 0
+    const totalSales = mealPlans?.reduce((sum, plan) => sum + (plan.total_purchases || 0), 0) || 0
 
     // Calculate earnings for current month
     const currentMonth = new Date()
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
     // Get top performing meal plans
     const topPlans = mealPlans
       ?.filter(plan => plan.is_published && plan.is_active)
-      .sort((a, b) => b.total_purchases - a.total_purchases)
+      .sort((a, b) => (b.total_purchases || 0) - (a.total_purchases || 0))
       .slice(0, 5)
       .map(plan => ({
         id: plan.id,

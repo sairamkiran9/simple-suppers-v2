@@ -91,8 +91,8 @@ export async function getCurrentUser(request: NextRequest): Promise<AuthUser | n
       id: user.id,
       email: user.email,
       name: user.name,
-      user_type: user.user_type,
-      subscription_tier: user.subscription_tier
+      user_type: (user.user_type as 'user' | 'provider' | 'admin') || 'user',
+      subscription_tier: (user.subscription_tier as 'freemium' | 'premium') || 'freemium'
     }
   } catch (error) {
     return null
@@ -231,8 +231,8 @@ export async function registerUser(userData: {
     id: user.id,
     email: user.email,
     name: user.name,
-    user_type: user.user_type,
-    subscription_tier: user.subscription_tier
+    user_type: (user.user_type as 'user' | 'provider' | 'admin') || 'user',
+    subscription_tier: (user.subscription_tier as 'freemium' | 'premium') || 'freemium'
   }
 }
 
@@ -252,11 +252,12 @@ export async function loginUser(email: string, password: string): Promise<AuthUs
   }
 
   // Verify password
-  if (!user.password_hash) {
+  const passwordHash = (user as any).password_hash
+  if (!passwordHash) {
     throw new AuthenticationError('Password authentication not configured for this account')
   }
 
-  const isPasswordValid = await verifyPassword(password, user.password_hash)
+  const isPasswordValid = await verifyPassword(password, passwordHash)
   if (!isPasswordValid) {
     throw new AuthenticationError('Invalid email or password')
   }
@@ -265,8 +266,8 @@ export async function loginUser(email: string, password: string): Promise<AuthUs
     id: user.id,
     email: user.email,
     name: user.name,
-    user_type: user.user_type,
-    subscription_tier: user.subscription_tier
+    user_type: (user.user_type as 'user' | 'provider' | 'admin') || 'user',
+    subscription_tier: (user.subscription_tier as 'freemium' | 'premium') || 'freemium'
   }
 }
 
@@ -302,8 +303,8 @@ export async function checkIsProvider(userId: string): Promise<{
       business_name: provider.business_name,
       bio: provider.bio,
       profile_image_url: provider.profile_image_url,
-      total_earnings: Number(provider.total_earnings),
-      total_plans: provider.total_plans,
+      total_earnings: Number(provider.total_earnings || 0),
+      total_plans: provider.total_plans || 0,
       average_rating: Number(provider.average_rating)
     }
   }

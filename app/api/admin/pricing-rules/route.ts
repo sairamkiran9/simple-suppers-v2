@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new pricing rule
-    const { data: pricingRule, error } = await supabaseAdmin!
+    const { data: pricingRule, error } = await (supabaseAdmin as any)
       .from('admin_pricing_rules')
       .insert({
         duration_days,

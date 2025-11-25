@@ -216,7 +216,7 @@ export async function DELETE(
     await supabaseAdmin
       .from('meal_plan_providers')
       .update({
-        total_plans: Math.max(0, provider.total_plans - 1)
+        total_plans: Math.max(0, (provider.total_plans || 0) - 1)
       })
       .eq('id', provider.id)
 

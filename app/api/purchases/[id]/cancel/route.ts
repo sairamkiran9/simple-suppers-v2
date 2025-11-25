@@ -70,7 +70,7 @@ export async function POST(request: NextRequest, { params }: { params: Params })
     await trackEvent({
       event_type: 'cancel_subscription',
       user_id: user.id,
-      meal_plan_id: purchase.meal_plan_id,
+      meal_plan_id: purchase.meal_plan_id || undefined,
       metadata: {
         purchase_id: purchaseId
       }

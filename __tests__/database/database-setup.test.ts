@@ -78,7 +78,7 @@ describe('Database Setup Validation', () => {
       for (const table of requiredTables) {
         try {
           const { error } = await supabase
-            .from(table)
+            .from(table as any)
             .select('*')
             .limit(1)
 

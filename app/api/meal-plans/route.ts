@@ -99,7 +99,11 @@ export async function GET(request: NextRequest) {
         .eq('is_active', true)
 
       if (purchases) {
-        userPurchases = new Map(purchases.map((p: { meal_plan_id: string; id: string }) => [p.meal_plan_id, p.id]))
+        userPurchases = new Map(
+          purchases
+            .filter((p): p is { meal_plan_id: string; id: string } => p.meal_plan_id !== null)
+            .map(p => [p.meal_plan_id, p.id])
+        )
       }
     }
 

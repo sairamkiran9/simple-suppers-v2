@@ -23,7 +23,7 @@ describe('Hero', () => {
   it('should display social proof elements', () => {
     render(<Hero onViewChange={mockOnViewChange} />)
 
-    expect(screen.getByText('Join families saving time & money')).toBeInTheDocument()
+    expect(screen.getByText('Join 2,500+ families saving time & money')).toBeInTheDocument()
     expect(screen.getByText('"Changed how we do dinners" - Sarah M.')).toBeInTheDocument()
   })
 

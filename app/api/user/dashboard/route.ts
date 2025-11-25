@@ -36,7 +36,9 @@ export async function GET(request: NextRequest) {
 
     // Transform purchased plans for response
     const purchasedPlans = purchases
-      .filter(purchase => purchase?.meal_plan && purchase?.provider)
+      .filter((purchase): purchase is typeof purchase & { meal_plan: NonNullable<typeof purchase.meal_plan>, provider: NonNullable<typeof purchase.provider> } =>
+        purchase?.meal_plan !== null && purchase?.provider !== null
+      )
       .map(purchase => ({
         id: purchase.id, // This is the purchase ID, needed for unsubscribe functionality
         title: purchase.meal_plan.title,

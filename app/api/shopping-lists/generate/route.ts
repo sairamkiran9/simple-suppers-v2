@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if purchase has expired (for paid plans)
-    if (purchase && new Date(purchase.expires_at) < new Date()) {
+    if (purchase && purchase.expires_at && new Date(purchase.expires_at) < new Date()) {
       return ErrorResponses.forbidden('Your access to this meal plan has expired')
     }
 

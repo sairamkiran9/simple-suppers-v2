@@ -3,6 +3,10 @@ import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/erro
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAdmin } from '@/lib/api/auth'
 import { supabaseAdmin } from '@/lib/supabase'
+import { UserPlanPurchase } from '@/lib/database-types'
+
+// Type for the specific fields we're selecting from monthly revenue query
+type MonthlyRevenuePurchase = Pick<UserPlanPurchase, 'purchase_price' | 'platform_fee' | 'purchased_at'>
 
 // Helper to ensure supabaseAdmin is available
 function ensureSupabaseAdmin() {
@@ -120,7 +124,7 @@ export async function GET(request: NextRequest) {
       .gte('purchased_at', sixMonthsAgo.toISOString())
 
     // Group revenue by month
-    const monthlyData = (monthlyRevenue || []).reduce((acc: any, purchase) => {
+    const monthlyData = ((monthlyRevenue || []) as MonthlyRevenuePurchase[]).reduce((acc: any, purchase) => {
       const month = new Date(purchase.purchased_at).toISOString().substring(0, 7) // YYYY-MM
       if (!acc[month]) {
         acc[month] = { total: 0, platform: 0, purchases: 0 }
@@ -141,7 +145,7 @@ export async function GET(request: NextRequest) {
         platform_revenue: platformRevenue
       },
       recent_activity: {
-        users: (recentUsers || []).map(user => ({
+        users: (recentUsers || []).map((user: any) => ({
           id: user.id,
           name: user.name,
           email: user.email,

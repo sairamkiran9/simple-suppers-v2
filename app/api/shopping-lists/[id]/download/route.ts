@@ -24,7 +24,7 @@ export async function GET(
       return ErrorResponses.validation('Shopping list ID must be a valid UUID')
     }
 
-    // First check if shopping list exists
+    // First check if shopping list exists and verify ownership
     const { data: shoppingList, error } = await supabaseAdmin
       .from('shopping_lists')
       .select(`
@@ -42,7 +42,7 @@ export async function GET(
       return ErrorResponses.notFound('Shopping list')
     }
 
-    // Then verify ownership
+    // Verify ownership - this should return 403
     if (shoppingList.user_id !== user.id) {
       return ErrorResponses.forbidden('You can only download your own shopping lists')
     }
@@ -64,7 +64,7 @@ export async function GET(
       const pdfContent = generatePDFContent(
         (shoppingList as any).meal_plan.title,
         ingredients,
-        shoppingList.generated_at
+        shoppingList.generated_at || new Date().toISOString()
       )
 
       return new Response(pdfContent, {
@@ -80,7 +80,7 @@ export async function GET(
       const txtContent = generateTextContent(
         (shoppingList as any).meal_plan.title,
         ingredients,
-        shoppingList.generated_at
+        shoppingList.generated_at || new Date().toISOString()
       )
 
       return new Response(txtContent, {

@@ -73,6 +73,11 @@ export async function POST(request: NextRequest) {
     const platformFee = purchasePrice * 0.30
     console.log('[Instant Purchase] Creating purchase. Price:', purchasePrice)
 
+    // Validate provider_id exists
+    if (!mealPlan.provider_id) {
+      return ErrorResponses.validation('Meal plan has no associated provider')
+    }
+
     // Create purchase record
     const purchase = await createPurchase({
       user_id: user.id,

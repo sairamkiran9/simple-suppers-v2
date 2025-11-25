@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from './supabase-types'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
@@ -7,7 +8,7 @@ if (!supabaseUrl || !supabasePublishableKey) {
   throw new Error('Missing Supabase environment variables. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in .env.local')
 }
 
-export const supabase = createClient(supabaseUrl, supabasePublishableKey)
+export const supabase = createClient<Database>(supabaseUrl, supabasePublishableKey)
 
 // Server-side client for admin operations
 // NOTE: This will only work in server-side code (API routes, server components)
@@ -16,7 +17,7 @@ export const supabase = createClient(supabaseUrl, supabasePublishableKey)
 const secretKey = process.env.SUPABASE_SECRET_KEY
 
 // Lazy initialization - only create when accessed
-let _supabaseAdmin: ReturnType<typeof createClient> | undefined = undefined
+let _supabaseAdmin: ReturnType<typeof createClient<Database>> | undefined = undefined
 
 function initSupabaseAdmin() {
   if (_supabaseAdmin !== undefined) {
@@ -32,13 +33,13 @@ function initSupabaseAdmin() {
     throw new Error('SUPABASE_SECRET_KEY and NEXT_PUBLIC_SUPABASE_URL must be set - check environment variables')
   }
 
-  _supabaseAdmin = createClient(supabaseUrl, secretKey)
+  _supabaseAdmin = createClient<Database>(supabaseUrl, secretKey)
   return _supabaseAdmin
 }
 
 // Export the admin client - will initialize on first access
 // Using a Proxy to enable lazy initialization while maintaining the same API
-export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient>, {
+export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient<Database>>, {
   get(target, prop) {
     const admin = initSupabaseAdmin()
     return (admin as any)[prop]
@@ -46,4 +47,4 @@ export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient>, {
 })
 
 // Type-safe database client
-export type { Database } from './database-types'
+export type { Database } from './supabase-types'

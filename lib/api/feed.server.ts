@@ -32,7 +32,7 @@ export async function getFeedPosts(
         id: post.author_id,
         name: 'Sample Provider',
         email: 'provider@example.com',
-        user_type: 'provider'
+        user_type: 'provider' as const
       },
       provider: {
         id: 'sample-provider-id',
@@ -40,7 +40,7 @@ export async function getFeedPosts(
         profile_image_url: null,
         bio: 'Delicious meals for everyone'
       },
-      meal_plan: null,
+      meal_plan: undefined,
       user_has_liked: false,
       user_is_following: false
     } as FeedPostWithAuthor))
@@ -78,14 +78,14 @@ export async function createFeedPost(post: {
     .from('feed_posts')
     .insert({
       author_id: user.id,
-      author_type: userData?.user_type || 'user',
+      author_type: (userData?.user_type as 'user' | 'provider' | 'admin') || 'user',
       ...post
     })
     .select()
     .single()
 
   if (error) throw error
-  return data
+  return data as FeedPost
 }
 
 // Like/unlike a post
@@ -183,7 +183,7 @@ export async function addComment(postId: string, content: string): Promise<FeedC
     .single()
 
   if (error) throw error
-  return data
+  return data as FeedComment
 }
 
 // Follow/unfollow a provider

@@ -64,6 +64,11 @@ export async function POST(request: NextRequest) {
     // Convert price to cents for Stripe
     const amountInCents = dollarsToCents(mealPlan.final_price)
 
+    // Validate provider_id exists
+    if (!mealPlan.provider_id) {
+      return ErrorResponses.validation('Meal plan has no associated provider')
+    }
+
     // Create mock payment intent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
@@ -86,7 +91,7 @@ export async function POST(request: NextRequest) {
         id: mealPlan.id,
         title: mealPlan.title,
         final_price: mealPlan.final_price,
-        provider_name: mealPlan.provider.business_name
+        provider_name: mealPlan.provider?.business_name ?? 'Unknown Provider'
       }
     })
 

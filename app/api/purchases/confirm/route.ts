@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     const purchase = await createPurchase({
       user_id: user.id,
       meal_plan_id: meal_plan_id,
-      provider_id: mealPlan.provider_id,
+      provider_id: mealPlan.provider_id || undefined,
       purchase_price: totalAmount,
       provider_earnings: centsToDollars(providerEarnings),
       platform_fee: centsToDollars(platformFee),
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       event_type: 'purchase',
       user_id: user.id,
       meal_plan_id: meal_plan_id,
-      provider_id: mealPlan.provider_id,
+      provider_id: mealPlan.provider_id || undefined,
       metadata: {
         purchase_price: totalAmount,
         provider_earnings: centsToDollars(providerEarnings),

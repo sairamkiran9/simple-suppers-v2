@@ -46,9 +46,36 @@ export function useShoppingListDownload() {
 
       const shoppingListId = generateResponse.data.shopping_list.id
 
-      // Step 2: Trigger download by navigating to the download URL
-      // This will cause the browser to download the PDF
-      window.location.href = `/api/shopping-lists/${shoppingListId}/download?format=pdf`
+      // Step 2: Download PDF with authentication
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        throw new Error('Authentication required')
+      }
+
+      const response = await fetch(
+        `/api/shopping-lists/${shoppingListId}/download?format=pdf`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error?.message || 'Failed to download PDF')
+      }
+
+      // Get the PDF blob and trigger download
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `shopping-list-${shoppingListId}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
 
       // Show success message
       toast.success('Shopping list downloaded!')

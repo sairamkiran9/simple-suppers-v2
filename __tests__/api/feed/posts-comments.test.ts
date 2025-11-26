@@ -123,11 +123,6 @@ describe('/api/feed/posts/[id]/comments', () => {
   describe('POST /api/feed/posts/[id]/comments', () => {
     it('should add a comment successfully', async () => {
       const { addComment } = require('@/lib/api/feed.server')
-      const { supabaseAdmin } = require('@/lib/supabase')
-      
-      supabaseAdmin.auth.getUser.mockResolvedValue({
-        data: { user: { id: 'user-123' } }
-      })
       
       const mockComment = {
         id: 'comment-1',
@@ -214,11 +209,6 @@ describe('/api/feed/posts/[id]/comments', () => {
 
     it('should handle long comments', async () => {
       const { addComment } = require('@/lib/api/feed.server')
-      const { supabaseAdmin } = require('@/lib/supabase')
-      
-      supabaseAdmin.auth.getUser.mockResolvedValue({
-        data: { user: { id: 'user-123' } }
-      })
       
       const longContent = 'A'.repeat(1000)
       const mockComment = {

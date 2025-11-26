@@ -82,9 +82,9 @@ describe('/api/feed/posts', () => {
 
     it('should pass user ID when authenticated', async () => {
       const { getFeedPosts } = require('@/lib/api/feed.server')
-      const { supabase } = require('@/lib/supabase')
+      const { supabaseAdmin } = require('@/lib/supabase')
       
-      supabase.auth.getUser.mockResolvedValue({
+      supabaseAdmin.auth.getUser.mockResolvedValue({
         data: { user: { id: 'user-123' } }
       })
       getFeedPosts.mockResolvedValue({ posts: [], hasMore: false })

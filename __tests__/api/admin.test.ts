@@ -54,6 +54,9 @@ const createChainableMock = (resolveValue?: any) => {
 jest.mock('@/lib/supabase', () => ({
   supabase: {
     from: jest.fn(() => createChainableMock())
+  },
+  supabaseAdmin: {
+    from: jest.fn(() => createChainableMock())
   }
 }))
 
@@ -79,7 +82,7 @@ describe('/api/admin/dashboard', () => {
   })
 
   it('should fetch admin dashboard data successfully', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
 
     // Setup mock responses in the order they'll be called
     mockResponses = [
@@ -143,7 +146,7 @@ describe('/api/admin/users', () => {
   })
 
   it('should fetch users successfully', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
 
     const mockUsers = [
       {
@@ -216,7 +219,7 @@ describe('/api/admin/users', () => {
   })
 
   it('should filter users by type', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
 
     // Setup mock responses
     mockResponses = [
@@ -241,7 +244,7 @@ describe('/api/admin/users', () => {
   })
 
   it('should search users', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
 
     // Setup mock responses
     mockResponses = [
@@ -274,7 +277,7 @@ describe('/api/admin/pricing-rules', () => {
   })
 
   it('should fetch pricing rules successfully', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
 
     const mockPricingRules = [
       {
@@ -316,7 +319,7 @@ describe('/api/admin/pricing-rules', () => {
   })
 
   it('should create new pricing rule successfully', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
 
     // Mock rule creation
     const mockNewRule = {
@@ -363,7 +366,7 @@ describe('/api/admin/pricing-rules', () => {
   })
 
   it('should prevent duplicate pricing rules', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
 
     // Setup mock responses - existing rule found
     mockResponses = [

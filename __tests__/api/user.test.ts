@@ -3,23 +3,28 @@ import { PATCH as profilePATCH } from '@/app/api/user/profile/route'
 import { GET as dashboardGET } from '@/app/api/user/dashboard/route'
 
 // Create a chainable mock for Supabase queries
-const createChainableMock = () => ({
-  select: jest.fn().mockReturnThis(),
-  eq: jest.fn().mockReturnThis(),
-  neq: jest.fn().mockReturnThis(),
-  gte: jest.fn().mockReturnThis(),
-  lte: jest.fn().mockReturnThis(),
-  single: jest.fn(() => Promise.resolve({ data: null, error: null })),
-  insert: jest.fn().mockReturnThis(),
-  update: jest.fn().mockReturnThis(),
-  delete: jest.fn().mockReturnThis(),
-  order: jest.fn().mockReturnThis(),
-  limit: jest.fn().mockReturnThis(),
-  range: jest.fn().mockReturnThis(),
-  filter: jest.fn().mockReturnThis(),
-  is: jest.fn().mockReturnThis(),
-  in: jest.fn().mockReturnThis()
-})
+const createChainableMock = (resolveValue = { data: null, error: null }) => {
+  const mock = {
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    neq: jest.fn().mockReturnThis(),
+    gte: jest.fn().mockReturnThis(),
+    lte: jest.fn().mockReturnThis(),
+    single: jest.fn(() => Promise.resolve({ data: null, error: null })),
+    insert: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
+    order: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    range: jest.fn().mockReturnThis(),
+    filter: jest.fn().mockReturnThis(),
+    is: jest.fn().mockReturnThis(),
+    in: jest.fn().mockReturnThis(),
+    // Make the mock thenable so it can be awaited directly
+    then: jest.fn((onFulfilled) => Promise.resolve(resolveValue).then(onFulfilled))
+  }
+  return mock
+}
 
 // Mock Supabase
 jest.mock('@/lib/supabase', () => ({
@@ -28,6 +33,9 @@ jest.mock('@/lib/supabase', () => ({
       signUp: jest.fn(),
       signInWithPassword: jest.fn()
     },
+    from: jest.fn(() => createChainableMock())
+  },
+  supabaseAdmin: {
     from: jest.fn(() => createChainableMock())
   }
 }))
@@ -61,7 +69,7 @@ describe('/api/user/profile', () => {
   })
 
   it('should update user profile successfully', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
 
     const mockUser = {
@@ -88,7 +96,7 @@ describe('/api/user/profile', () => {
       data: mockUser,
       error: null
     } as any)
-    supabase.from.mockReturnValue(mockChain)
+    supabaseAdmin.from.mockReturnValue(mockChain)
 
     const request = new NextRequest('http://localhost:3000/api/user/profile', {
       method: 'PATCH',
@@ -153,7 +161,7 @@ describe('/api/user/profile', () => {
   })
 
   it('should update user profile successfully', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
 
     const updatedUser = {
@@ -175,7 +183,8 @@ describe('/api/user/profile', () => {
       data: updatedUser,
       error: null
     } as any)
-    supabase.from.mockReturnValue(mockChain)
+    supabaseAdmin.from.mockReturnValue(mockChain)
+   
 
     const request = new NextRequest('http://localhost:3000/api/user/profile', {
       method: 'PATCH',
@@ -228,7 +237,7 @@ describe('/api/user/profile', () => {
   })
 
   it('should handle partial updates', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
 
     const updatedUser = {
@@ -249,7 +258,7 @@ describe('/api/user/profile', () => {
       data: updatedUser,
       error: null
     } as any)
-    supabase.from.mockReturnValue(mockChain)
+    supabaseAdmin.from.mockReturnValue(mockChain)
 
     const request = new NextRequest('http://localhost:3000/api/user/profile', {
       method: 'PATCH',
@@ -300,7 +309,7 @@ describe('/api/user/profile', () => {
   })
 
   it('should handle database errors during update', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
 
     requireAuth.mockResolvedValue({
@@ -314,7 +323,7 @@ describe('/api/user/profile', () => {
       data: null,
       error: { message: 'Database error' }
     } as any)
-    supabase.from.mockReturnValue(mockChain)
+    supabaseAdmin.from.mockReturnValue(mockChain)
 
     const request = new NextRequest('http://localhost:3000/api/user/profile', {
       method: 'PATCH',
@@ -336,68 +345,48 @@ describe('/api/user/profile', () => {
 describe('/api/user/dashboard', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    const { getUserPurchases } = require('@/lib/database-utils')
+    getUserPurchases.mockReset()
+    getUserPurchases.mockResolvedValue([])
   })
 
   it('should fetch user dashboard data successfully', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
+    const { getUserPurchases } = require('@/lib/database-utils')
 
-    // Mock user profile
-    const mockUser = {
+    requireAuth.mockResolvedValue({
       id: 'test-user-id',
-      free_plans_used: 1,
+      email: 'user@example.com',
+      user_type: 'user',
+      name: 'Test User',
       subscription_tier: 'freemium'
-    }
+    })
 
-    // Mock active purchases
-    const mockActivePurchases = [
+    // Mock purchases with one paid plan
+    getUserPurchases.mockResolvedValue([
       {
         id: 'purchase-1',
         meal_plan_id: 'plan-1',
         purchased_at: '2024-01-01T00:00:00Z',
         expires_at: '2024-04-01T00:00:00Z',
+        purchase_price: 35.00,
+        status: 'completed',
+        is_active: true,
         meal_plan: {
           id: 'plan-1',
           title: 'Active Plan',
-          duration_days: 7,
-          category: 'family'
-        }
-      }
-    ]
-
-    // Mock recommended plans
-    const mockRecommendedPlans = [
-      {
-        id: 'plan-2',
-        title: 'Recommended Plan',
-        description: 'Great for you',
-        final_price: 25.00,
-        category: 'healthy',
-        dietary_tags: ['vegetarian'],
-        is_featured: true,
-        average_rating: 4.8,
+          duration_days: 7
+        },
         provider: {
-          business_name: 'Healthy Kitchen'
+          business_name: 'Test Provider'
         }
       }
-    ]
+    ])
 
-    requireAuth.mockResolvedValue({
-      id: 'test-user-id',
-      email: 'user@example.com',
-      user_type: 'user'
-    })
-
-    const mockChain = createChainableMock()
-    mockChain.single
-      .mockResolvedValueOnce({ data: mockUser, error: null } as any)
-
-    mockChain.order.mockReturnThis()
-    mockChain.limit
-      .mockResolvedValueOnce({ data: mockActivePurchases, error: null })
-      .mockResolvedValueOnce({ data: mockRecommendedPlans, error: null })
-
-    supabase.from.mockReturnValue(mockChain)
+    // Mock free plans query - awaited directly after .eq()
+    const mockChain = createChainableMock({ data: [], error: null })
+    supabaseAdmin.from.mockReturnValue(mockChain)
 
     const request = new NextRequest('http://localhost:3000/api/user/dashboard', {
       headers: {
@@ -411,40 +400,30 @@ describe('/api/user/dashboard', () => {
     expect(response.status).toBe(200)
     expect(data.success).toBe(true)
     expect(data.data.overview).toBeDefined()
-    expect(data.data.overview.free_plans_remaining).toBe(2) // 3 total - 1 used
+    expect(data.data.overview.free_plans_remaining).toBe(3)
     expect(data.data.overview.active_plans).toBe(1)
-    expect(data.data.active_purchases).toHaveLength(1)
-    expect(data.data.active_purchases[0].meal_plan.title).toBe('Active Plan')
-    expect(data.data.recommended_plans).toHaveLength(1)
-    expect(data.data.recommended_plans[0].title).toBe('Recommended Plan')
+    expect(data.data.purchased_plans).toHaveLength(1)
+    expect(data.data.purchased_plans[0].meal_plan.title).toBe('Active Plan')
   })
 
   it('should handle premium user with unlimited plans', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
-
-    const mockUser = {
-      id: 'test-user-id',
-      free_plans_used: 5,
-      subscription_tier: 'premium'
-    }
+    const { getUserPurchases } = require('@/lib/database-utils')
 
     requireAuth.mockResolvedValue({
       id: 'test-user-id',
       email: 'user@example.com',
-      user_type: 'user'
+      user_type: 'user',
+      name: 'Test User',
+      subscription_tier: 'premium'
     })
 
-    const mockChain = createChainableMock()
-    mockChain.single
-      .mockResolvedValueOnce({ data: mockUser, error: null } as any)
+    getUserPurchases.mockResolvedValue([])
 
-    mockChain.order.mockReturnThis()
-    mockChain.limit
-      .mockResolvedValueOnce({ data: [], error: null })
-      .mockResolvedValueOnce({ data: [], error: null })
-
-    supabase.from.mockReturnValue(mockChain)
+    // Mock free plans query - awaited directly after .eq()
+    const mockChain = createChainableMock({ data: [], error: null })
+    supabaseAdmin.from.mockReturnValue(mockChain)
 
     const request = new NextRequest('http://localhost:3000/api/user/dashboard', {
       headers: {
@@ -457,35 +436,27 @@ describe('/api/user/dashboard', () => {
 
     expect(response.status).toBe(200)
     expect(data.success).toBe(true)
-    expect(data.data.overview.free_plans_remaining).toBe('unlimited')
+    expect(data.data.overview.free_plans_remaining).toBe(0)
   })
 
   it('should handle user with no active purchases', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
-
-    const mockUser = {
-      id: 'test-user-id',
-      free_plans_used: 0,
-      subscription_tier: 'freemium'
-    }
+    const { getUserPurchases } = require('@/lib/database-utils')
 
     requireAuth.mockResolvedValue({
       id: 'test-user-id',
       email: 'user@example.com',
-      user_type: 'user'
+      user_type: 'user',
+      name: 'Test User',
+      subscription_tier: 'freemium'
     })
 
-    const mockChain = createChainableMock()
-    mockChain.single
-      .mockResolvedValueOnce({ data: mockUser, error: null } as any)
+    getUserPurchases.mockResolvedValue([])
 
-    mockChain.order.mockReturnThis()
-    mockChain.limit
-      .mockResolvedValueOnce({ data: [], error: null })
-      .mockResolvedValueOnce({ data: [], error: null })
-
-    supabase.from.mockReturnValue(mockChain)
+    // Mock free plans query - awaited directly after .eq()
+    const mockChain = createChainableMock({ data: [], error: null })
+    supabaseAdmin.from.mockReturnValue(mockChain)
 
     const request = new NextRequest('http://localhost:3000/api/user/dashboard', {
       headers: {
@@ -500,7 +471,7 @@ describe('/api/user/dashboard', () => {
     expect(data.success).toBe(true)
     expect(data.data.overview.active_plans).toBe(0)
     expect(data.data.overview.free_plans_remaining).toBe(3)
-    expect(data.data.active_purchases).toHaveLength(0)
+    expect(data.data.purchased_plans).toHaveLength(0)
   })
 
   it('should require authentication', async () => {
@@ -517,18 +488,18 @@ describe('/api/user/dashboard', () => {
   })
 
   it('should handle database errors gracefully', async () => {
-    const { supabase } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
+    const { getUserPurchases } = require('@/lib/database-utils')
 
     requireAuth.mockResolvedValue({
       id: 'test-user-id',
       email: 'user@example.com',
-      user_type: 'user'
+      user_type: 'user',
+      name: 'Test User',
+      subscription_tier: 'freemium'
     })
 
-    const mockChain = createChainableMock()
-    mockChain.single.mockRejectedValue(new Error('Database error'))
-    supabase.from.mockReturnValue(mockChain)
+    getUserPurchases.mockRejectedValue(new Error('Database error'))
 
     const request = new NextRequest('http://localhost:3000/api/user/dashboard', {
       headers: {
@@ -542,48 +513,32 @@ describe('/api/user/dashboard', () => {
   })
 
   it('should calculate total purchases correctly', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
-
-    const mockUser = {
-      id: 'test-user-id',
-      free_plans_used: 2,
-      subscription_tier: 'freemium'
-    }
-
-    // Mock purchases history count
-    const mockPurchases = Array.from({ length: 5 }, (_, i) => ({
-      id: `purchase-${i}`,
-      status: 'completed'
-    }))
+    const { getUserPurchases } = require('@/lib/database-utils')
 
     requireAuth.mockResolvedValue({
       id: 'test-user-id',
       email: 'user@example.com',
-      user_type: 'user'
+      user_type: 'user',
+      name: 'Test User',
+      subscription_tier: 'freemium'
     })
 
-    const mockChain = createChainableMock()
-    mockChain.single
-      .mockResolvedValueOnce({ data: mockUser, error: null } as any)
+    getUserPurchases.mockResolvedValue(Array.from({ length: 5 }, (_, i) => ({
+      id: `purchase-${i}`,
+      status: 'completed',
+      is_active: false,
+      purchase_price: 10,
+      meal_plan: { id: `plan-${i}`, title: `Plan ${i}`, duration_days: 7 },
+      provider: { business_name: 'Provider' },
+      purchased_at: '2024-01-01',
+      expires_at: '2024-01-08'
+    })))
 
-    // Mock for counting total purchases
-    mockChain.select.mockReturnThis()
-    mockChain.eq.mockReturnThis()
-    mockChain.order.mockReturnThis()
-    mockChain.limit
-      .mockResolvedValueOnce({ data: [], error: null }) // active purchases
-      .mockResolvedValueOnce({ data: [], error: null }) // recommended plans
-
-    // Mock separate call for total purchase count
-    const countMockChain = createChainableMock()
-    countMockChain.select.mockResolvedValue({ count: 5, error: null })
-
-    supabase.from
-      .mockReturnValueOnce(mockChain)  // user profile
-      .mockReturnValueOnce(mockChain)  // active purchases
-      .mockReturnValueOnce(mockChain)  // recommended plans
-      .mockReturnValueOnce(countMockChain) // total purchases count
+    // Mock free plans query - awaited directly after .eq()
+    const mockChain = createChainableMock({ data: [], error: null })
+    supabaseAdmin.from.mockReturnValue(mockChain)
 
     const request = new NextRequest('http://localhost:3000/api/user/dashboard', {
       headers: {

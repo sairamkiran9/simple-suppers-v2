@@ -6,7 +6,8 @@ const mockSupabase = {
   mockResponses: {
     meal_plan_providers: { data: null, error: null },
     meal_plans: { data: null, error: null },
-    update: { data: null, error: null }
+    update: { data: null, error: null },
+    lastUpdateData: {}
   } as Record<string, any>,
 
   callCounts: {} as Record<string, number>,
@@ -23,7 +24,8 @@ const mockSupabase = {
     mockSupabase.mockResponses = {
       meal_plan_providers: { data: null, error: null },
       meal_plans: { data: null, error: null },
-      update: { data: null, error: null }
+      update: { data: null, error: null },
+      lastUpdateData: {}
     } as Record<string, any>
     mockSupabase.callCounts = {}
   },
@@ -33,42 +35,52 @@ const mockSupabase = {
   }
 }
 
-jest.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: jest.fn((tableName) => {
-      const createQueryChain = (): any => {
-        const chain: any = {
-          select: jest.fn(() => chain),
-          eq: jest.fn(() => chain),
-          single: jest.fn(() => Promise.resolve(mockSupabase.getTableResponse(tableName)))
-        }
-        return chain
+jest.mock('@/lib/supabase', () => {
+  const createFromMock = (tableName: string) => {
+    const createQueryChain = (): any => {
+      const chain: any = {
+        select: jest.fn(() => chain),
+        eq: jest.fn(() => chain),
+        single: jest.fn(() => Promise.resolve(mockSupabase.getTableResponse(tableName)))
       }
+      return chain
+    }
 
-      const fromObject = {
-        select: jest.fn(() => createQueryChain()),
-        update: jest.fn((data) => {
-          // Store update data for verification
-          mockSupabase.mockResponses.lastUpdateData = data
-          return {
-            eq: jest.fn(() => {
-              // For DELETE endpoint (no .select() after .eq())
-              const deleteChain = {
-                select: jest.fn(() => ({
-                  single: jest.fn(() => Promise.resolve(mockSupabase.mockResponses.update))
-                }))
-              }
-              // Return promise with select method for chaining
-              const promise = Promise.resolve(mockSupabase.mockResponses.update)
-              return Object.assign(promise, deleteChain)
-            })
-          }
-        })
-      }
-      return fromObject
-    })
+    const fromObject = {
+      select: jest.fn(() => createQueryChain()),
+      update: jest.fn((data) => {
+        // Store update data for verification - track per table
+        if (!mockSupabase.mockResponses.lastUpdateData) {
+          mockSupabase.mockResponses.lastUpdateData = {}
+        }
+        mockSupabase.mockResponses.lastUpdateData[tableName] = data
+        return {
+          eq: jest.fn(() => {
+            // For DELETE endpoint (no .select() after .eq())
+            const deleteChain = {
+              select: jest.fn(() => ({
+                single: jest.fn(() => Promise.resolve(mockSupabase.mockResponses.update))
+              }))
+            }
+            // Return promise with select method for chaining
+            const promise = Promise.resolve(mockSupabase.mockResponses.update)
+            return Object.assign(promise, deleteChain)
+          })
+        }
+      })
+    }
+    return fromObject
   }
-}))
+
+  return {
+    supabase: {
+      from: createFromMock
+    },
+    supabaseAdmin: {
+      from: createFromMock
+    }
+  }
+})
 
 // Mock provider authentication
 const mockAuthUser = {
@@ -637,30 +649,9 @@ describe('/api/providers/meal-plans/[id]', () => {
         error: null
       })
 
-      // Create a spy to capture the update call
-      let capturedUpdateData: any = null
-      const { supabase } = require('@/lib/supabase')
-
-      // Override the from mock for this specific test
-      supabase.from = jest.fn((tableName) => {
-        if (tableName === 'meal_plan_providers' || tableName === 'meal_plans') {
-          return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve(mockSupabase.getTableResponse(tableName)))
-              }))
-            })),
-            update: jest.fn((data) => {
-              if (tableName === 'meal_plans') {
-                capturedUpdateData = data
-              }
-              return {
-                eq: jest.fn(() => Promise.resolve({ data: null, error: null }))
-              }
-            })
-          }
-        }
-        return {}
+      mockSupabase.setMockResponse('update', {
+        data: { ...mockExistingMealPlan, is_deleted: true, is_active: false, is_published: false },
+        error: null
       })
 
       const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
@@ -670,13 +661,14 @@ describe('/api/providers/meal-plans/[id]', () => {
         }
       })
 
-      await DELETE(request, { params: { id: 'plan-1' } })
+      const response = await DELETE(request, { params: { id: 'plan-1' } })
 
-      // Verify update was called with correct data
-      expect(capturedUpdateData).toBeDefined()
-      expect(capturedUpdateData.is_deleted).toBe(true)
-      expect(capturedUpdateData.is_active).toBe(false)
-      expect(capturedUpdateData.is_published).toBe(false)
+      // Verify the update was called with correct data for meal_plans table
+      expect(mockSupabase.mockResponses.lastUpdateData).toBeDefined()
+      expect(mockSupabase.mockResponses.lastUpdateData.meal_plans).toBeDefined()
+      expect(mockSupabase.mockResponses.lastUpdateData.meal_plans.is_deleted).toBe(true)
+      expect(mockSupabase.mockResponses.lastUpdateData.meal_plans.is_active).toBe(false)
+      expect(mockSupabase.mockResponses.lastUpdateData.meal_plans.is_published).toBe(false)
     })
 
     it('should fail with 401 when not authenticated', async () => {

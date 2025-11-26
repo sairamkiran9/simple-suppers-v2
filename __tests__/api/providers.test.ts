@@ -45,42 +45,49 @@ const mockSupabase = {
   }
 }
 
-jest.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: jest.fn((tableName) => {
-      // Create a flexible query builder that supports chaining
-      const createQueryChain = (): any => {
-        const chain: any = {
-          select: jest.fn(() => chain),
-          eq: jest.fn(() => chain),
-          gte: jest.fn(() => chain),
-          order: jest.fn(() => chain),
-          range: jest.fn(() => Promise.resolve(mockSupabase.getTableResponse(tableName))),
-          limit: jest.fn(() => Promise.resolve(mockSupabase.getTableResponse(tableName))),
-          single: jest.fn(() => Promise.resolve(mockSupabase.getTableResponse(tableName)))
-        }
-        return chain
+jest.mock('@/lib/supabase', () => {
+  const createFromMock = (tableName: string) => {
+    // Create a flexible query builder that supports chaining
+    const createQueryChain = (): any => {
+      const chain: any = {
+        select: jest.fn(() => chain),
+        eq: jest.fn(() => chain),
+        gte: jest.fn(() => chain),
+        order: jest.fn(() => chain),
+        range: jest.fn(() => Promise.resolve(mockSupabase.getTableResponse(tableName))),
+        limit: jest.fn(() => Promise.resolve(mockSupabase.getTableResponse(tableName))),
+        single: jest.fn(() => Promise.resolve(mockSupabase.getTableResponse(tableName)))
       }
+      return chain
+    }
 
-      const fromObject = {
-        select: jest.fn(() => createQueryChain()),
-        update: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            select: jest.fn(() => ({
-              single: jest.fn(() => Promise.resolve(mockSupabase.mockResponses.update))
-            }))
-          }))
-        })),
-        insert: jest.fn(() => ({
+    const fromObject = {
+      select: jest.fn(() => createQueryChain()),
+      update: jest.fn(() => ({
+        eq: jest.fn(() => ({
           select: jest.fn(() => ({
-            single: jest.fn(() => Promise.resolve(mockSupabase.mockResponses.insert))
+            single: jest.fn(() => Promise.resolve(mockSupabase.mockResponses.update))
           }))
         }))
-      }
-      return fromObject
-    })
+      })),
+      insert: jest.fn(() => ({
+        select: jest.fn(() => ({
+          single: jest.fn(() => Promise.resolve(mockSupabase.mockResponses.insert))
+        }))
+      }))
+    }
+    return fromObject
   }
-}))
+
+  return {
+    supabase: {
+      from: createFromMock
+    },
+    supabaseAdmin: {
+      from: createFromMock
+    }
+  }
+})
 
 // Export mock utilities for test configuration
 const { supabase } = require('@/lib/supabase')
@@ -93,6 +100,18 @@ jest.mock('@/lib/api/auth', () => ({
     user_type: 'provider',
     name: 'Test Provider',
     subscription_tier: 'premium'
+  })),
+  checkIsProvider: jest.fn(() => Promise.resolve({
+    isProvider: true,
+    providerProfile: {
+      id: 'provider-1',
+      business_name: 'Test Kitchen',
+      bio: 'Amazing meals',
+      profile_image_url: 'https://example.com/image.jpg',
+      total_earnings: 250.00,
+      total_plans: 5,
+      average_rating: 4.5
+    }
   }))
 }))
 
@@ -491,6 +510,6 @@ describe('/api/providers/meal-plans', () => {
 
     expect(response.status).toBe(400)
     expect(data.success).toBe(false)
-    expect(data.error).toContain('limit')
+    expect(data.error.message).toContain('limit')
   })
 })

@@ -4,7 +4,7 @@ import { POST as confirmPOST } from '@/app/api/purchases/confirm/route'
 import { GET as historyGET } from '@/app/api/purchases/history/route'
 
 // Create a chainable mock for Supabase queries
-const createChainableMock = (resolveValue = { data: null, error: null }) => {
+const createChainableMock = (resolveValue: any = { data: null, error: null }) => {
   const mock = {
     select: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),

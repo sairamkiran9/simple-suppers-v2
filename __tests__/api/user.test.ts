@@ -3,7 +3,7 @@ import { PATCH as profilePATCH } from '@/app/api/user/profile/route'
 import { GET as dashboardGET } from '@/app/api/user/dashboard/route'
 
 // Create a chainable mock for Supabase queries
-const createChainableMock = (resolveValue = { data: null, error: null }) => {
+const createChainableMock = (resolveValue: any = { data: null, error: null }) => {
   const mock = {
     select: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),

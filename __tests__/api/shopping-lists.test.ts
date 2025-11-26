@@ -3,7 +3,7 @@ import { POST as generatePOST } from '@/app/api/shopping-lists/generate/route'
 import { GET as downloadGET } from '@/app/api/shopping-lists/[id]/download/route'
 
 // Create a chainable mock for Supabase queries
-const createChainableMock = (resolveValue = { data: null, error: null }) => {
+const createChainableMock = (resolveValue: any = { data: null, error: null }) => {
   const mock = {
     select: jest.fn().mockReturnThis(),
     eq: jest.fn().mockReturnThis(),

@@ -3,11 +3,37 @@
  * Tests the Supabase database configuration and basic operations
  */
 
-import { supabase } from '../../lib/supabase'
-import { getMealPlans, getUserById, getMealPlanById } from '../../lib/database-utils'
+// Check if Supabase is configured before importing
+const hasSupabaseConfig = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+)
 
-describe('Database Setup Validation', () => {
+// Only run these tests if Supabase is configured
+const describeIfConfigured = hasSupabaseConfig ? describe : describe.skip
+
+describeIfConfigured('Database Setup Validation', () => {
+  // Lazy load supabase modules only if configured
+  let supabase: any
+  let getMealPlans: any
+  let getUserById: any
+  let getMealPlanById: any
+
   beforeAll(async () => {
+    if (!hasSupabaseConfig) {
+      console.log('⚠️  Skipping database tests - Supabase not configured')
+      return
+    }
+
+    // Import modules only when needed
+    const supabaseModule = await import('../../lib/supabase')
+    const dbUtilsModule = await import('../../lib/database-utils')
+
+    supabase = supabaseModule.supabase
+    getMealPlans = dbUtilsModule.getMealPlans
+    getUserById = dbUtilsModule.getUserById
+    getMealPlanById = dbUtilsModule.getMealPlanById
+
     // Wait a moment for any async operations
     await new Promise(resolve => setTimeout(resolve, 1000))
   })

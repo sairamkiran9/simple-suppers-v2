@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAdmin } from '@/lib/api/auth'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, isSupabaseAdminConfigured } from '@/lib/supabase'
 import { UserPlanPurchase } from '@/lib/database-types'
 
 // Type for the specific fields we're selecting from monthly revenue query
@@ -10,7 +10,7 @@ type MonthlyRevenuePurchase = Pick<UserPlanPurchase, 'purchase_price' | 'platfor
 
 // Helper to ensure supabaseAdmin is available
 function ensureSupabaseAdmin() {
-  if (!supabaseAdmin) {
+  if (!isSupabaseAdminConfigured()) {
     throw new Error('Supabase admin client not available - check SUPABASE_SECRET_KEY environment variable')
   }
   return supabaseAdmin

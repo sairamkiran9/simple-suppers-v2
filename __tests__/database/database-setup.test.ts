@@ -40,8 +40,6 @@ describeIfConfigured('Database Setup Validation', () => {
       getUserById = dbUtilsModule.getUserById
       getMealPlanById = dbUtilsModule.getMealPlanById
 
-      // Wait a moment for any async operations
-      await new Promise(resolve => setTimeout(resolve, 1000))
       console.log('✓ Setup complete')
     } catch (error) {
       console.error('Failed to load database modules:', error)

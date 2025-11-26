@@ -3,7 +3,7 @@ import { UpdateProfileSchema, validateBody } from '@/lib/api/validation'
 import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, isSupabaseAdminConfigured } from '@/lib/supabase'
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -43,10 +43,10 @@ export async function PATCH(request: NextRequest) {
 
     // Update user profile in database with enhanced error logging
     // Using supabaseAdmin to bypass RLS since we already validated auth with requireAuth()
-    if (!supabaseAdmin) {
+    if (!isSupabaseAdminConfigured()) {
       return ErrorResponses.internal('Admin client not available')
     }
-    
+
     const { data: updatedUser, error } = await supabaseAdmin
       .from('users')
       .update(updatePayload)

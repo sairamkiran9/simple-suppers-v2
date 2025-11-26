@@ -25,18 +25,29 @@ describeIfConfigured('Database Setup Validation', () => {
       return
     }
 
-    // Import modules only when needed
-    const supabaseModule = await import('../../lib/supabase')
-    const dbUtilsModule = await import('../../lib/database-utils')
+    try {
+      console.log('Loading Supabase module...')
+      // Import modules only when needed
+      const supabaseModule = await import('../../lib/supabase')
+      console.log('✓ Supabase module loaded')
 
-    supabase = supabaseModule.supabase
-    getMealPlans = dbUtilsModule.getMealPlans
-    getUserById = dbUtilsModule.getUserById
-    getMealPlanById = dbUtilsModule.getMealPlanById
+      console.log('Loading database utils...')
+      const dbUtilsModule = await import('../../lib/database-utils')
+      console.log('✓ Database utils loaded')
 
-    // Wait a moment for any async operations
-    await new Promise(resolve => setTimeout(resolve, 1000))
-  })
+      supabase = supabaseModule.supabase
+      getMealPlans = dbUtilsModule.getMealPlans
+      getUserById = dbUtilsModule.getUserById
+      getMealPlanById = dbUtilsModule.getMealPlanById
+
+      // Wait a moment for any async operations
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      console.log('✓ Setup complete')
+    } catch (error) {
+      console.error('Failed to load database modules:', error)
+      throw error
+    }
+  }, 10000)
 
   describe('Environment Configuration', () => {
     it('should have the correct environment variables', () => {

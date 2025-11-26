@@ -23,7 +23,17 @@ jest.mock('@/lib/supabase', () => ({
       signInWithPassword: jest.fn()
     },
     from: jest.fn(() => createChainableMock())
-  }
+  },
+  supabaseAdmin: {
+    auth: {
+      signUp: jest.fn(),
+      signInWithPassword: jest.fn(),
+      getUser: jest.fn()
+    },
+    from: jest.fn(() => createChainableMock())
+  },
+  isSupabaseAdminConfigured: jest.fn(() => true),
+  isSupabaseConfigured: jest.fn(() => true)
 }))
 
 // Mock rate limiting
@@ -43,28 +53,23 @@ describe('/api/auth/register', () => {
   })
 
   it('should register a new user successfully', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
 
-    // Mock successful auth signup
-    supabase.auth.signUp.mockResolvedValue({
-      data: { user: { id: 'test-user-id', email: 'test@example.com' }, session: null },
-      error: null
-    })
-
-    // Mock the chainable query - first call should return no existing user, second call creates user
+    // Mock the chainable query - first call checks existing user, second call creates user
     const mockChain = createChainableMock()
     mockChain.single
-      .mockResolvedValueOnce({ data: null, error: { message: 'No rows returned' } } as any) // No existing user
+      .mockResolvedValueOnce({ data: null, error: null } as any) // No existing user
       .mockResolvedValueOnce({ // User creation
         data: {
           id: 'test-user-id',
           email: 'test@example.com',
           name: 'Test User',
-          user_type: 'user'
+          user_type: 'user',
+          subscription_tier: 'freemium'
         },
         error: null
       } as any)
-    supabase.from.mockReturnValue(mockChain)
+    supabaseAdmin.from.mockReturnValue(mockChain)
 
     const request = new NextRequest('http://localhost:3000/api/auth/register', {
       method: 'POST',
@@ -145,20 +150,11 @@ describe('/api/auth/login', () => {
   })
 
   it('should login successfully with valid credentials', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const bcrypt = require('bcryptjs')
 
     // Mock successful password verification
     bcrypt.compare.mockResolvedValue(true)
-
-    // Mock successful login
-    supabase.auth.signInWithPassword.mockResolvedValue({
-      data: {
-        user: { id: 'test-user-id', email: 'test@example.com' },
-        session: { access_token: 'test-token' }
-      },
-      error: null
-    })
 
     // Mock the chainable query for user fetch
     const mockChain = createChainableMock()
@@ -169,11 +165,13 @@ describe('/api/auth/login', () => {
         name: 'Test User',
         user_type: 'user',
         subscription_tier: 'freemium',
-        password_hash: '$2a$12$test.hash.for.password123' // Mock bcrypt hash
+        password_hash: '$2a$12$test.hash.for.password123',
+        is_active: true,
+        is_deleted: false
       },
       error: null
     } as any)
-    supabase.from.mockReturnValue(mockChain)
+    supabaseAdmin.from.mockReturnValue(mockChain)
 
     const request = new NextRequest('http://localhost:3000/api/auth/login', {
       method: 'POST',
@@ -193,7 +191,7 @@ describe('/api/auth/login', () => {
   })
 
   it('should fail with invalid credentials', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
 
     // Mock user not found (invalid email)
     const mockChain = createChainableMock()
@@ -201,7 +199,7 @@ describe('/api/auth/login', () => {
       data: null,
       error: { message: 'No rows returned' }
     } as any)
-    supabase.from.mockReturnValue(mockChain)
+    supabaseAdmin.from.mockReturnValue(mockChain)
 
     const request = new NextRequest('http://localhost:3000/api/auth/login', {
       method: 'POST',

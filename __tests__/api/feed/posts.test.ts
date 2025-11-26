@@ -18,11 +18,19 @@ jest.mock('@/lib/supabase', () => ({
       getUser: jest.fn()
     },
     from: jest.fn(() => createChainableMock())
-  }
+  },
+  supabaseAdmin: {
+    auth: {
+      getUser: jest.fn()
+    },
+    from: jest.fn(() => createChainableMock())
+  },
+  isSupabaseAdminConfigured: jest.fn(() => true),
+  isSupabaseConfigured: jest.fn(() => true)
 }))
 
 // Mock feed API functions
-jest.mock('@/lib/api/feed', () => ({
+jest.mock('@/lib/api/feed.server', () => ({
   getFeedPosts: jest.fn(),
   createFeedPost: jest.fn()
 }))
@@ -34,7 +42,7 @@ describe('/api/feed/posts', () => {
 
   describe('GET /api/feed/posts', () => {
     it('should get feed posts with default pagination', async () => {
-      const { getFeedPosts } = require('@/lib/api/feed')
+      const { getFeedPosts } = require('@/lib/api/feed.server')
       
       const mockPosts = [
         {
@@ -64,7 +72,7 @@ describe('/api/feed/posts', () => {
     })
 
     it('should handle pagination parameters', async () => {
-      const { getFeedPosts } = require('@/lib/api/feed')
+      const { getFeedPosts } = require('@/lib/api/feed.server')
       
       getFeedPosts.mockResolvedValue({ posts: [], hasMore: true })
 
@@ -75,10 +83,10 @@ describe('/api/feed/posts', () => {
     })
 
     it('should pass user ID when authenticated', async () => {
-      const { getFeedPosts } = require('@/lib/api/feed')
-      const { supabase } = require('@/lib/supabase')
+      const { getFeedPosts } = require('@/lib/api/feed.server')
+      const { supabaseAdmin } = require('@/lib/supabase')
       
-      supabase.auth.getUser.mockResolvedValue({
+      supabaseAdmin.auth.getUser.mockResolvedValue({
         data: { user: { id: 'user-123' } }
       })
       getFeedPosts.mockResolvedValue({ posts: [], hasMore: false })
@@ -92,7 +100,7 @@ describe('/api/feed/posts', () => {
     })
 
     it('should handle API errors gracefully', async () => {
-      const { getFeedPosts } = require('@/lib/api/feed')
+      const { getFeedPosts } = require('@/lib/api/feed.server')
       
       getFeedPosts.mockRejectedValue(new Error('Database error'))
 
@@ -107,7 +115,7 @@ describe('/api/feed/posts', () => {
 
   describe('POST /api/feed/posts', () => {
     it('should create a new post successfully', async () => {
-      const { createFeedPost } = require('@/lib/api/feed')
+      const { createFeedPost } = require('@/lib/api/feed.server')
       
       const mockPost = {
         id: 'post-1',
@@ -160,7 +168,7 @@ describe('/api/feed/posts', () => {
     })
 
     it('should handle creation errors', async () => {
-      const { createFeedPost } = require('@/lib/api/feed')
+      const { createFeedPost } = require('@/lib/api/feed.server')
       
       createFeedPost.mockRejectedValue(new Error('Not authenticated'))
 
@@ -181,7 +189,7 @@ describe('/api/feed/posts', () => {
     })
 
     it('should handle all post types', async () => {
-      const { createFeedPost } = require('@/lib/api/feed')
+      const { createFeedPost } = require('@/lib/api/feed.server')
       
       createFeedPost.mockResolvedValue({ id: 'post-1' })
 

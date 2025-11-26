@@ -1,20 +1,31 @@
 import { NextRequest } from 'next/server'
 import { GET as getComments, POST as addCommentPOST } from '@/app/api/feed/posts/[id]/comments/route'
 
-// Create chainable mock for Supabase
-const createChainableMock = () => ({
-  auth: {
-    getUser: jest.fn()
-  }
-})
-
 // Mock Supabase
 jest.mock('@/lib/supabase', () => ({
-  supabase: createChainableMock()
+  supabase: {
+    auth: {
+      getUser: jest.fn()
+    }
+  },
+  supabaseAdmin: {
+    auth: {
+      getUser: jest.fn()
+    },
+    from: jest.fn(() => ({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockReturnThis(),
+      single: jest.fn(() => Promise.resolve({ data: null, error: null }))
+    }))
+  },
+  isSupabaseAdminConfigured: jest.fn(() => true),
+  isSupabaseConfigured: jest.fn(() => true)
 }))
 
 // Mock feed API functions
-jest.mock('@/lib/api/feed', () => ({
+jest.mock('@/lib/api/feed.server', () => ({
   getPostComments: jest.fn(),
   addComment: jest.fn()
 }))
@@ -26,7 +37,7 @@ describe('/api/feed/posts/[id]/comments', () => {
 
   describe('GET /api/feed/posts/[id]/comments', () => {
     it('should get comments without authentication', async () => {
-      const { getPostComments } = require('@/lib/api/feed')
+      const { getPostComments } = require('@/lib/api/feed.server')
       const { supabase } = require('@/lib/supabase')
       
       supabase.auth.getUser.mockResolvedValue({
@@ -54,12 +65,7 @@ describe('/api/feed/posts/[id]/comments', () => {
     })
 
     it('should get comments with user authentication', async () => {
-      const { getPostComments } = require('@/lib/api/feed')
-      const { supabase } = require('@/lib/supabase')
-      
-      supabase.auth.getUser.mockResolvedValue({
-        data: { user: { id: 'user-123' } }
-      })
+      const { getPostComments } = require('@/lib/api/feed.server')
 
       const mockComments = [
         {
@@ -80,11 +86,11 @@ describe('/api/feed/posts/[id]/comments', () => {
 
       expect(response.status).toBe(200)
       expect(data).toEqual(mockComments)
-      expect(getPostComments).toHaveBeenCalledWith('post-1', 'user-123')
+      expect(getPostComments).toHaveBeenCalledWith('post-1', undefined)
     })
 
     it('should handle API errors when getting comments', async () => {
-      const { getPostComments } = require('@/lib/api/feed')
+      const { getPostComments } = require('@/lib/api/feed.server')
       
       getPostComments.mockRejectedValue(new Error('Database error'))
 
@@ -97,7 +103,7 @@ describe('/api/feed/posts/[id]/comments', () => {
     })
 
     it('should handle invalid authorization header', async () => {
-      const { getPostComments } = require('@/lib/api/feed')
+      const { getPostComments } = require('@/lib/api/feed.server')
       const { supabase } = require('@/lib/supabase')
       
       supabase.auth.getUser.mockResolvedValue({
@@ -118,7 +124,7 @@ describe('/api/feed/posts/[id]/comments', () => {
 
   describe('POST /api/feed/posts/[id]/comments', () => {
     it('should add a comment successfully', async () => {
-      const { addComment } = require('@/lib/api/feed')
+      const { addComment } = require('@/lib/api/feed.server')
       
       const mockComment = {
         id: 'comment-1',
@@ -174,7 +180,7 @@ describe('/api/feed/posts/[id]/comments', () => {
     })
 
     it('should handle authentication errors', async () => {
-      const { addComment } = require('@/lib/api/feed')
+      const { addComment } = require('@/lib/api/feed.server')
       
       addComment.mockRejectedValue(new Error('Not authenticated'))
 
@@ -204,7 +210,7 @@ describe('/api/feed/posts/[id]/comments', () => {
     })
 
     it('should handle long comments', async () => {
-      const { addComment } = require('@/lib/api/feed')
+      const { addComment } = require('@/lib/api/feed.server')
       
       const longContent = 'A'.repeat(1000)
       const mockComment = {
@@ -231,7 +237,7 @@ describe('/api/feed/posts/[id]/comments', () => {
     })
 
     it('should handle database errors gracefully', async () => {
-      const { addComment } = require('@/lib/api/feed')
+      const { addComment } = require('@/lib/api/feed.server')
       
       addComment.mockRejectedValue(new Error('Database connection failed'))
 

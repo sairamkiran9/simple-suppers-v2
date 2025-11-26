@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin } from './supabase'
+import { supabase, supabaseAdmin, isSupabaseAdminConfigured } from './supabase'
 import type {
   MealPlan,
   MealPlanWithProvider,
@@ -68,7 +68,7 @@ export async function getMealPlanById(id: string) {
 
 // User Management
 export async function createUser(userData: Partial<User>) {
-  if (!supabaseAdmin) {
+  if (!isSupabaseAdminConfigured()) {
     throw new Error('Admin client not available')
   }
 
@@ -124,7 +124,7 @@ export async function getProviderByUserId(userId: string) {
 export async function createPurchase(purchaseData: Partial<UserPlanPurchase>) {
   console.log('[createPurchase] Starting purchase creation with data:', JSON.stringify(purchaseData, null, 2))
 
-  if (!supabaseAdmin) {
+  if (!isSupabaseAdminConfigured()) {
     throw new Error('Admin client not available')
   }
 
@@ -145,7 +145,7 @@ export async function createPurchase(purchaseData: Partial<UserPlanPurchase>) {
 }
 
 export async function getUserPurchases(userId: string) {
-  if (!supabaseAdmin) {
+  if (!isSupabaseAdminConfigured()) {
     throw new Error('Admin client not available')
   }
 
@@ -183,7 +183,7 @@ export async function checkUserAccess(userId: string, mealPlanId: string) {
 export async function cancelPurchase(purchaseId: string) {
   console.log('[cancelPurchase] Canceling purchase:', purchaseId)
 
-  if (!supabaseAdmin) {
+  if (!isSupabaseAdminConfigured()) {
     throw new Error('Admin client not available')
   }
 
@@ -256,7 +256,7 @@ export async function trackEvent(eventData: {
   session_id?: string
   metadata?: any
 }) {
-  if (!supabaseAdmin) {
+  if (!isSupabaseAdminConfigured()) {
     console.warn('Admin client not available for analytics tracking')
     return
   }

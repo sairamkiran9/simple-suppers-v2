@@ -10,7 +10,12 @@ export async function GET(request: NextRequest) {
     
     // Get user ID from auth header if present (optional for feed)
     let userId: string | undefined
-    // Note: Feed can be viewed without auth
+    const authHeader = request.headers.get('authorization')
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.substring(7)
+      const { data } = await supabaseAdmin.auth.getUser(token)
+      userId = data.user?.id
+    }
 
     const result = await getFeedPosts(page, limit, userId)
     

@@ -9,11 +9,81 @@ const { TextEncoder, TextDecoder } = require('util')
 global.TextEncoder = TextEncoder
 global.TextDecoder = TextDecoder
 
+// Polyfill File, Blob, and FormData for undici (required in Node.js < 20)
+if (typeof global.File === 'undefined') {
+  class File {
+    constructor(bits, name, options = {}) {
+      this.bits = bits
+      this.name = name
+      this.type = options.type || ''
+      this.lastModified = options.lastModified || Date.now()
+      this.size = bits.reduce((acc, bit) => acc + (bit.length || bit.size || 0), 0)
+    }
+
+    async text() {
+      return this.bits.map(bit => bit.toString()).join('')
+    }
+
+    async arrayBuffer() {
+      const text = await this.text()
+      return new TextEncoder().encode(text).buffer
+    }
+
+    slice(start, end, contentType) {
+      return new File(this.bits.slice(start, end), this.name, { type: contentType || this.type })
+    }
+
+    stream() {
+      const chunks = this.bits
+      let index = 0
+      return new ReadableStream({
+        pull(controller) {
+          if (index < chunks.length) {
+            controller.enqueue(chunks[index++])
+          } else {
+            controller.close()
+          }
+        }
+      })
+    }
+  }
+  global.File = File
+}
+
+if (typeof global.Blob === 'undefined') {
+  class Blob {
+    constructor(bits = [], options = {}) {
+      this.bits = bits
+      this.type = options.type || ''
+      this.size = bits.reduce((acc, bit) => acc + (bit.length || bit.size || 0), 0)
+    }
+
+    async text() {
+      return this.bits.map(bit => bit.toString()).join('')
+    }
+
+    async arrayBuffer() {
+      const text = await this.text()
+      return new TextEncoder().encode(text).buffer
+    }
+
+    slice(start, end, contentType) {
+      return new Blob(this.bits.slice(start, end), { type: contentType || this.type })
+    }
+  }
+  global.Blob = Blob
+}
+
 // Mock Web APIs for Node.js environment
-const { Request, Response, Headers } = require('undici')
-global.Request = Request
-global.Response = Response
-global.Headers = Headers
+try {
+  const { Request, Response, Headers } = require('undici')
+  global.Request = Request
+  global.Response = Response
+  global.Headers = Headers
+} catch (error) {
+  console.warn('Could not load undici for Web APIs:', error.message)
+  console.warn('Tests may fail if they rely on Request/Response objects')
+}
 
 // Extend Jest matchers
 expect.extend({

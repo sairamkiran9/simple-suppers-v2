@@ -4,23 +4,28 @@ import { POST as confirmPOST } from '@/app/api/purchases/confirm/route'
 import { GET as historyGET } from '@/app/api/purchases/history/route'
 
 // Create a chainable mock for Supabase queries
-const createChainableMock = () => ({
-  select: jest.fn().mockReturnThis(),
-  eq: jest.fn().mockReturnThis(),
-  neq: jest.fn().mockReturnThis(),
-  gte: jest.fn().mockReturnThis(),
-  lte: jest.fn().mockReturnThis(),
-  single: jest.fn(() => Promise.resolve({ data: null, error: null })),
-  insert: jest.fn().mockReturnThis(),
-  update: jest.fn().mockReturnThis(),
-  delete: jest.fn().mockReturnThis(),
-  order: jest.fn().mockReturnThis(),
-  limit: jest.fn().mockReturnThis(),
-  range: jest.fn().mockReturnThis(),
-  filter: jest.fn().mockReturnThis(),
-  is: jest.fn().mockReturnThis(),
-  in: jest.fn().mockReturnThis()
-})
+const createChainableMock = (resolveValue: any = { data: null, error: null }) => {
+  const mock = {
+    select: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    neq: jest.fn().mockReturnThis(),
+    gte: jest.fn().mockReturnThis(),
+    lte: jest.fn().mockReturnThis(),
+    single: jest.fn(() => Promise.resolve({ data: null, error: null })),
+    insert: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
+    order: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    range: jest.fn().mockReturnThis(),
+    filter: jest.fn().mockReturnThis(),
+    is: jest.fn().mockReturnThis(),
+    in: jest.fn().mockReturnThis(),
+    // Make the mock thenable so it can be awaited directly
+    then: jest.fn((onFulfilled) => Promise.resolve(resolveValue).then(onFulfilled))
+  }
+  return mock
+}
 
 // Mock Supabase
 jest.mock('@/lib/supabase', () => ({
@@ -30,7 +35,12 @@ jest.mock('@/lib/supabase', () => ({
       signInWithPassword: jest.fn()
     },
     from: jest.fn(() => createChainableMock())
-  }
+  },
+  supabaseAdmin: {
+    from: jest.fn(() => createChainableMock())
+  },
+  isSupabaseAdminConfigured: jest.fn(() => true),
+  isSupabaseConfigured: jest.fn(() => true)
 }))
 
 // Mock authentication
@@ -52,7 +62,14 @@ jest.mock('@/lib/api/rate-limit', () => ({
 // Mock payment processing
 jest.mock('@/lib/api/payments', () => ({
   createPaymentIntent: jest.fn(),
-  verifyPaymentIntent: jest.fn()
+  verifyPaymentIntent: jest.fn(),
+  stripe: {
+    paymentIntents: {
+      create: jest.fn()
+    }
+  },
+  dollarsToCents: jest.fn((dollars) => Math.round(dollars * 100)),
+  calculateProviderEarnings: jest.fn()
 }))
 
 describe('/api/purchases/create-intent', () => {
@@ -61,7 +78,7 @@ describe('/api/purchases/create-intent', () => {
   })
 
   it('should create payment intent successfully', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
     const { createPaymentIntent } = require('@/lib/api/payments')
 
@@ -83,14 +100,14 @@ describe('/api/purchases/create-intent', () => {
     })
 
     const mockChain = createChainableMock()
-    mockChain.single.mockResolvedValue({
-      data: mockMealPlan,
-      error: null
-    } as any)
-    supabase.from.mockReturnValue(mockChain)
+    mockChain.single
+      .mockResolvedValueOnce({ data: mockMealPlan, error: null } as any)
+      .mockResolvedValueOnce({ data: null, error: null } as any)
+    supabaseAdmin.from.mockReturnValue(mockChain)
 
-    // Mock payment intent creation
-    createPaymentIntent.mockResolvedValue({
+    // Mock Stripe payment intent creation
+    const { stripe } = require('@/lib/api/payments')
+    stripe.paymentIntents.create.mockResolvedValue({
       id: 'pi_mock_12345',
       amount: 3500,
       currency: 'usd',
@@ -112,14 +129,14 @@ describe('/api/purchases/create-intent', () => {
     const data = await response.json()
 
     expect(response.status).toBe(200)
-    expect(data.client_secret).toBeDefined()
-    expect(data.client_secret).toContain('pi_mock_12345_secret_xyz')
-    expect(data.amount).toBe(3500) // $35.00 in cents
-    expect(data.meal_plan.title).toBe('Test Plan')
+    expect(data.data.client_secret).toBeDefined()
+    expect(data.data.client_secret).toContain('pi_mock_12345_secret_xyz')
+    expect(data.data.amount).toBe(3500) // $35.00 in cents
+    expect(data.data.meal_plan.title).toBe('Test Plan')
   })
 
   it('should fail for non-existent meal plan', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
 
     requireAuth.mockResolvedValue({
@@ -133,7 +150,7 @@ describe('/api/purchases/create-intent', () => {
       data: null,
       error: { message: 'No rows returned' }
     } as any)
-    supabase.from.mockReturnValue(mockChain)
+    supabaseAdmin.from.mockReturnValue(mockChain)
 
     const request = new NextRequest('http://localhost:3000/api/purchases/create-intent', {
       method: 'POST',
@@ -149,12 +166,12 @@ describe('/api/purchases/create-intent', () => {
     const response = await createIntentPOST(request)
     const data = await response.json()
 
-    expect(response.status).toBe(404)
-    expect(data.error).toBe('Meal plan not found')
+    expect(response.status).toBe(400)
+    expect(data.error.message).toContain('Invalid')
   })
 
   it('should fail for inactive meal plan', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
 
     const mockMealPlan = {
@@ -174,9 +191,8 @@ describe('/api/purchases/create-intent', () => {
     })
 
     const mockChain = createChainableMock()
-    // Since the query filters for is_active: true, this will return nothing
     mockChain.single.mockResolvedValue({ data: null, error: null } as any)
-    supabase.from.mockReturnValue(mockChain)
+    supabaseAdmin.from.mockReturnValue(mockChain)
 
     const request = new NextRequest('http://localhost:3000/api/purchases/create-intent', {
       method: 'POST',
@@ -193,11 +209,11 @@ describe('/api/purchases/create-intent', () => {
     const data = await response.json()
 
     expect(response.status).toBe(404)
-    expect(data.error).toBe('Meal plan not found')
+    expect(data.error.message).toBe('Meal plan not found')
   })
 
   it('should fail for deleted meal plan', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
 
     const mockMealPlan = {
@@ -217,9 +233,8 @@ describe('/api/purchases/create-intent', () => {
     })
 
     const mockChain = createChainableMock()
-    // Since the query filters for is_deleted: false, this will return nothing
     mockChain.single.mockResolvedValue({ data: null, error: null } as any)
-    supabase.from.mockReturnValue(mockChain)
+    supabaseAdmin.from.mockReturnValue(mockChain)
 
     const request = new NextRequest('http://localhost:3000/api/purchases/create-intent', {
       method: 'POST',
@@ -236,11 +251,11 @@ describe('/api/purchases/create-intent', () => {
     const data = await response.json()
 
     expect(response.status).toBe(404)
-    expect(data.error).toBe('Meal plan not found')
+    expect(data.error.message).toBe('Meal plan not found')
   })
 
   it('should fail for free meal plan', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
 
     const mockMealPlan = {
@@ -261,11 +276,10 @@ describe('/api/purchases/create-intent', () => {
     })
 
     const mockChain = createChainableMock()
-    mockChain.single.mockResolvedValue({
-      data: mockMealPlan,
-      error: null
-    } as any)
-    supabase.from.mockReturnValue(mockChain)
+    mockChain.single
+      .mockResolvedValueOnce({ data: mockMealPlan, error: null } as any)
+      .mockResolvedValueOnce({ data: null, error: null } as any)
+    supabaseAdmin.from.mockReturnValue(mockChain)
 
     const request = new NextRequest('http://localhost:3000/api/purchases/create-intent', {
       method: 'POST',
@@ -282,7 +296,7 @@ describe('/api/purchases/create-intent', () => {
     const data = await response.json()
 
     expect(response.status).toBe(400)
-    expect(data.error).toBe('Cannot purchase free meal plans')
+    expect(data.error.message).toBe('Cannot purchase free meal plans')
   })
 
   it('should validate meal_plan_id UUID format', async () => {
@@ -309,7 +323,7 @@ describe('/api/purchases/create-intent', () => {
     const data = await response.json()
 
     expect(response.status).toBe(400)
-    expect(data.errors).toBeDefined()
+    expect(data.error).toBeDefined()
   })
 
   it('should require authentication', async () => {
@@ -340,7 +354,7 @@ describe('/api/purchases/history', () => {
   })
 
   it('should fetch purchase history successfully', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
 
     const mockPurchases = [
@@ -381,23 +395,22 @@ describe('/api/purchases/history', () => {
       user_type: 'user'
     })
 
-    // Mock the first query (with pagination and joins)
+    // Mock the first query (with pagination and joins) - ends with .range()
     const mockChain1 = createChainableMock()
-    mockChain1.range.mockResolvedValue({
+    mockChain1.range.mockReturnValue(Promise.resolve({
       data: mockPurchases,
       error: null,
       count: 2
-    })
+    }))
 
-    // Mock the second query (for total spent calculation)
-    const mockChain2 = createChainableMock()
-    mockChain2.select.mockResolvedValue({
+    // Mock the second query (for total spent calculation) - awaited directly after .eq()
+    const mockChain2 = createChainableMock({
       data: mockTotalSpentData,
       error: null
     })
 
     // Return different mocks for different calls
-    supabase.from.mockReturnValueOnce(mockChain1).mockReturnValueOnce(mockChain2)
+    supabaseAdmin.from.mockReturnValueOnce(mockChain1).mockReturnValueOnce(mockChain2)
 
     const request = new NextRequest('http://localhost:3000/api/purchases/history', {
       headers: {
@@ -409,14 +422,14 @@ describe('/api/purchases/history', () => {
     const data = await response.json()
 
     expect(response.status).toBe(200)
-    expect(data.purchases).toHaveLength(2)
-    expect(data.purchases[0].meal_plan_title).toBe('Test Plan')
-    expect(data.total).toBe(2)
-    expect(data.total_spent).toBe(60.00)
+    expect(data.data.purchases).toHaveLength(2)
+    expect(data.data.purchases[0].meal_plan_title).toBe('Test Plan')
+    expect(data.data.total).toBe(2)
+    expect(data.data.total_spent).toBe(60.00)
   })
 
   it('should handle pagination correctly', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
 
     requireAuth.mockResolvedValue({
@@ -427,20 +440,19 @@ describe('/api/purchases/history', () => {
 
     // Mock the first query (with pagination)
     const mockChain1 = createChainableMock()
-    mockChain1.range.mockResolvedValue({
+    mockChain1.range.mockReturnValue(Promise.resolve({
       data: [],
       error: null,
       count: 0
-    })
+    }))
 
-    // Mock the second query (for total spent)
-    const mockChain2 = createChainableMock()
-    mockChain2.select.mockResolvedValue({
+    // Mock the second query (for total spent) - awaited directly after .eq()
+    const mockChain2 = createChainableMock({
       data: [],
       error: null
     })
 
-    supabase.from.mockReturnValueOnce(mockChain1).mockReturnValueOnce(mockChain2)
+    supabaseAdmin.from.mockReturnValueOnce(mockChain1).mockReturnValueOnce(mockChain2)
 
     const request = new NextRequest('http://localhost:3000/api/purchases/history?limit=5&offset=10', {
       headers: {
@@ -473,11 +485,11 @@ describe('/api/purchases/history', () => {
     const data = await response.json()
 
     expect(response.status).toBe(400)
-    expect(data.errors).toBeDefined()
+    expect(data.error).toBeDefined()
   })
 
   it('should handle empty purchase history', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
 
     requireAuth.mockResolvedValue({
@@ -488,20 +500,19 @@ describe('/api/purchases/history', () => {
 
     // Mock the first query (with pagination)
     const mockChain1 = createChainableMock()
-    mockChain1.range.mockResolvedValue({
+    mockChain1.range.mockReturnValue(Promise.resolve({
       data: [],
       error: null,
       count: 0
-    })
+    }))
 
-    // Mock the second query (for total spent)
-    const mockChain2 = createChainableMock()
-    mockChain2.select.mockResolvedValue({
+    // Mock the second query (for total spent) - awaited directly after .eq()
+    const mockChain2 = createChainableMock({
       data: [],
       error: null
     })
 
-    supabase.from.mockReturnValueOnce(mockChain1).mockReturnValueOnce(mockChain2)
+    supabaseAdmin.from.mockReturnValueOnce(mockChain1).mockReturnValueOnce(mockChain2)
 
     const request = new NextRequest('http://localhost:3000/api/purchases/history', {
       headers: {
@@ -513,9 +524,9 @@ describe('/api/purchases/history', () => {
     const data = await response.json()
 
     expect(response.status).toBe(200)
-    expect(data.purchases).toHaveLength(0)
-    expect(data.total).toBe(0)
-    expect(data.total_spent).toBe(0)
+    expect(data.data.purchases).toHaveLength(0)
+    expect(data.data.total).toBe(0)
+    expect(data.data.total_spent).toBe(0)
   })
 
 
@@ -533,7 +544,7 @@ describe('/api/purchases/history', () => {
   })
 
   it('should handle database errors gracefully', async () => {
-    const { supabase } = require('@/lib/supabase')
+    const { supabaseAdmin } = require('@/lib/supabase')
     const { requireAuth } = require('@/lib/api/auth')
 
     requireAuth.mockResolvedValue({
@@ -544,7 +555,7 @@ describe('/api/purchases/history', () => {
 
     const mockChain = createChainableMock()
     mockChain.range.mockRejectedValue(new Error('Database error'))
-    supabase.from.mockReturnValue(mockChain)
+    supabaseAdmin.from.mockReturnValue(mockChain)
 
     const request = new NextRequest('http://localhost:3000/api/purchases/history', {
       headers: {

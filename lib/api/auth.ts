@@ -12,12 +12,48 @@ export interface AuthUser {
   subscription_tier: 'freemium' | 'premium'
 }
 
-// JWT configuration
-if (!process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET.length < 32) {
-  throw new Error('NEXTAUTH_SECRET environment variable must be set to a secure value (minimum 32 characters) in production.')
+// JWT configuration - lazy initialization to allow builds without NEXTAUTH_SECRET
+let _jwtSecret: string | null = null
+let _jwtConfigChecked = false
+
+function getJWTSecret(): string {
+  // Return cached value if already initialized
+  if (_jwtSecret !== null) {
+    return _jwtSecret
+  }
+
+  // Only check once and log warning
+  if (!_jwtConfigChecked) {
+    _jwtConfigChecked = true
+
+    const secret = process.env.NEXTAUTH_SECRET
+
+    if (!secret || secret.length < 32) {
+      console.warn('NEXTAUTH_SECRET not configured or less than 32 characters. JWT operations will fail at runtime.')
+      _jwtSecret = null
+      return null as any // Will throw when actually used
+    }
+
+    _jwtSecret = secret
+  }
+
+  if (!_jwtSecret) {
+    throw new Error(
+      'NEXTAUTH_SECRET environment variable must be set to a secure value (minimum 32 characters). ' +
+      'Generate one using: openssl rand -base64 32'
+    )
+  }
+
+  return _jwtSecret
 }
-const JWT_SECRET = process.env.NEXTAUTH_SECRET
+
 const JWT_EXPIRES_IN = '7d'
+
+// Helper function to check if JWT is configured
+export function isJWTConfigured(): boolean {
+  const secret = process.env.NEXTAUTH_SECRET
+  return !!(secret && secret.length >= 32)
+}
 
 // Password hashing utilities
 export async function hashPassword(password: string): Promise<string> {
@@ -31,20 +67,22 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 
 // JWT utilities
 export function generateToken(user: AuthUser): string {
+  const secret = getJWTSecret()
   return jwt.sign(
     {
       id: user.id,
       email: user.email,
       user_type: user.user_type
     },
-    JWT_SECRET,
+    secret,
     { expiresIn: JWT_EXPIRES_IN }
   )
 }
 
 export function verifyToken(token: string): { id: string; email: string; user_type: string } {
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as any
+    const secret = getJWTSecret()
+    const payload = jwt.verify(token, secret) as any
     return {
       id: payload.id,
       email: payload.email,

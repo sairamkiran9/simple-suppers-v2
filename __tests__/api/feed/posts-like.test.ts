@@ -23,7 +23,9 @@ jest.mock('@/lib/supabase', () => ({
       insert: jest.fn().mockReturnThis(),
       single: jest.fn(() => Promise.resolve({ data: null, error: null }))
     }))
-  }
+  },
+  isSupabaseAdminConfigured: jest.fn(() => true),
+  isSupabaseConfigured: jest.fn(() => true)
 }))
 
 // Mock feed API functions

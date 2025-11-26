@@ -78,7 +78,9 @@ jest.mock('@/lib/supabase', () => {
     },
     supabaseAdmin: {
       from: createFromMock
-    }
+    },
+    isSupabaseAdminConfigured: jest.fn(() => true),
+    isSupabaseConfigured: jest.fn(() => true)
   }
 })
 

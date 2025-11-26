@@ -38,7 +38,9 @@ jest.mock('@/lib/supabase', () => ({
   },
   supabaseAdmin: {
     from: jest.fn(() => createChainableMock())
-  }
+  },
+  isSupabaseAdminConfigured: jest.fn(() => true),
+  isSupabaseConfigured: jest.fn(() => true)
 }))
 
 // Mock authentication

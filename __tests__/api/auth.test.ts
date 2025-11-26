@@ -31,7 +31,9 @@ jest.mock('@/lib/supabase', () => ({
       getUser: jest.fn()
     },
     from: jest.fn(() => createChainableMock())
-  }
+  },
+  isSupabaseAdminConfigured: jest.fn(() => true),
+  isSupabaseConfigured: jest.fn(() => true)
 }))
 
 // Mock rate limiting

@@ -1,8 +1,12 @@
 name: Bundle Size Check
 
 on:
+  push:
+    branches:
+      - '**'
   pull_request:
-    branches: [main, develop]
+    branches:
+      - '**'
 
 jobs:
   bundle-size:
@@ -29,8 +33,9 @@ jobs:
       - name: Analyze bundle size
         id: bundle-size
         run: |
-          # Get the size of the build output
-          BUILD_SIZE=$(du -sb .next | cut -f1)
+          # Get the size of the build output (excluding cache directory)
+          # Only measure production files: static assets and server code
+          BUILD_SIZE=$(du -sb .next/static .next/server 2>/dev/null | awk '{sum+=$1} END {print sum}')
           echo "build_size=$BUILD_SIZE" >> $GITHUB_OUTPUT
 
           # Get individual chunk sizes
@@ -54,6 +59,7 @@ jobs:
           fi
 
       - name: Comment bundle size
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |

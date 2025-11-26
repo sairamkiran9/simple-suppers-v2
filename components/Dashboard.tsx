@@ -158,7 +158,7 @@ export default function Dashboard({ onViewMealPlan }: DashboardProps = {}) {
             <CardContent>
               {data.purchased_plans.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  You haven&rsquo;t purchased any meal plans yet.
+                  You haven't purchased any meal plans yet.
                 </p>
               ) : (
                 <div className="space-y-4">

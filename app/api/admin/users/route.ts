@@ -3,7 +3,7 @@ import { AdminUsersQuerySchema, validateQuery } from '@/lib/api/validation'
 import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAdmin } from '@/lib/api/auth'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const { user_type, is_active, search, limit, offset } = validation.data
 
     // Build query
-    let query = supabase
+    let query = supabaseAdmin
       .from('users')
       .select(`
         id,
@@ -66,11 +66,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Get provider info for provider users
-    const providerUsers = users?.filter(u => u.user_type === 'provider') || []
+    const providerUsers = users?.filter((u: any) => u.user_type === 'provider') || []
     const providerData = new Map()
 
     if (providerUsers.length > 0) {
-      const { data: providers } = await supabase
+      const { data: providers } = await supabaseAdmin!
         .from('meal_plan_providers')
         .select(`
           user_id,
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
           average_rating,
           is_active
         `)
-        .in('user_id', providerUsers.map(u => u.id))
+        .in('user_id', providerUsers.map((u: any) => u.id))
 
       providers?.forEach(provider => {
         providerData.set(provider.user_id, provider)
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform response data
-    const responseData = (users || []).map(user => {
+    const responseData = (users || []).map((user: any) => {
       const baseUser = {
         id: user.id,
         email: user.email,

@@ -3,7 +3,7 @@ import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/erro
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
 import { cancelPurchase, trackEvent } from '@/lib/database-utils'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, isSupabaseAdminConfigured } from '@/lib/supabase'
 
 interface Params {
   id: string
@@ -34,6 +34,11 @@ export async function POST(request: NextRequest, { params }: { params: Params })
 
     // Verify the purchase belongs to the user (using admin client for performance)
     console.log('[Cancel Purchase] Verifying purchase ownership...')
+
+    if (!isSupabaseAdminConfigured()) {
+      return ErrorResponses.internal('Admin client not available')
+    }
+
     const { data: purchase, error: purchaseError } = await supabaseAdmin
       .from('user_plan_purchases')
       .select('id, user_id, meal_plan_id, is_active')
@@ -65,7 +70,7 @@ export async function POST(request: NextRequest, { params }: { params: Params })
     await trackEvent({
       event_type: 'cancel_subscription',
       user_id: user.id,
-      meal_plan_id: purchase.meal_plan_id,
+      meal_plan_id: purchase.meal_plan_id || undefined,
       metadata: {
         purchase_id: purchaseId
       }

@@ -38,9 +38,14 @@ export default function Navigation({ currentView, onViewChange, onLoginClick }: 
   const navItems = [
     { view: 'landing' as ViewType, label: 'Home', protected: false },
     { view: 'browse' as ViewType, label: 'Browse Plans', protected: false },
+    { view: 'feed' as ViewType, label: 'Community', protected: false },
     { view: 'provider' as ViewType, label: 'For Providers', protected: true, requiresType: 'provider' },
-    { view: 'dashboard' as ViewType, label: 'My Account', protected: true, requiresType: 'user' },
   ];
+
+  // Add My Account only if user is logged in as a user
+  if (isAuthenticated && user?.user_type === 'user') {
+    navItems.push({ view: 'dashboard' as ViewType, label: 'My Account', protected: true, requiresType: 'user' });
+  }
 
   return (
     <nav className="navbar">
@@ -63,7 +68,14 @@ export default function Navigation({ currentView, onViewChange, onLoginClick }: 
               ))}
             </div>
             <div className="flex items-center gap-2">
-              {isAuthenticated ? (
+              {!isAuthenticated ? (
+                <button
+                  className="nav-link"
+                  onClick={onLoginClick}
+                >
+                  Login
+                </button>
+              ) : (
                 <Button
                   variant="outline"
                   size="sm"
@@ -72,14 +84,6 @@ export default function Navigation({ currentView, onViewChange, onLoginClick }: 
                 >
                   <LogOut size={16} />
                   Logout
-                </Button>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onLoginClick}
-                >
-                  Login
                 </Button>
               )}
               <ThemeToggle />

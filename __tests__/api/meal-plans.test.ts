@@ -30,7 +30,9 @@ jest.mock('@/lib/supabase', () => ({
       signInWithPassword: jest.fn()
     },
     from: jest.fn(() => createChainableMock())
-  }
+  },
+  isSupabaseAdminConfigured: jest.fn(() => true),
+  isSupabaseConfigured: jest.fn(() => true)
 }))
 
 // Mock rate limiting
@@ -383,8 +385,8 @@ describe('/api/meal-plans/[id]', () => {
 
     expect(response.status).toBe(200)
     expect(data.success).toBe(true)
-    expect(data.data.plan.title).toBe('Quick Family Meals')
-    expect(data.data.plan.days).toHaveLength(1)
+    expect(data.data.title).toBe('Quick Family Meals')
+    expect(data.data.meal_plan_days).toHaveLength(1)
   })
 
   it('should return 404 for non-existent meal plan', async () => {

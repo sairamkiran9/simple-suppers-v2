@@ -3,7 +3,7 @@ import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/erro
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
 import { createPurchase, trackEvent } from '@/lib/database-utils'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 /**
  * POST /api/purchases/instant
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     // Get meal plan and provider details
     console.log('[Instant Purchase] Fetching meal plan...')
-    const { data: mealPlan, error: planError } = await supabase
+    const { data: mealPlan, error: planError } = await supabaseAdmin
       .from('meal_plans')
       .select(`
         *,
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     console.log('[Instant Purchase] Meal plan found:', mealPlan.title)
 
     // Check if user already purchased this plan
-    const { data: existingPurchase } = await supabase
+    const { data: existingPurchase } = await supabaseAdmin
       .from('user_plan_purchases')
       .select('id')
       .eq('user_id', user.id)
@@ -72,6 +72,11 @@ export async function POST(request: NextRequest) {
     const providerEarnings = purchasePrice * 0.70
     const platformFee = purchasePrice * 0.30
     console.log('[Instant Purchase] Creating purchase. Price:', purchasePrice)
+
+    // Validate provider_id exists
+    if (!mealPlan.provider_id) {
+      return ErrorResponses.validation('Meal plan has no associated provider')
+    }
 
     // Create purchase record
     const purchase = await createPurchase({

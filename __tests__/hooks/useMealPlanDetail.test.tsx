@@ -2,7 +2,7 @@
  * Tests for useMealPlanDetail hook
  */
 
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { useMealPlanDetail } from '@/hooks/useMealPlanDetail'
 import { AuthProvider, useAuth } from '@/lib/auth-context'
 import { getMealPlanDetail } from '@/lib/api/meal-plans'
@@ -142,7 +142,9 @@ describe('useMealPlanDetail', () => {
 
     expect(getMealPlanDetail).toHaveBeenCalledTimes(1)
 
-    result.current.refetch()
+    act(() => {
+      result.current.refetch()
+    })
 
     await waitFor(() => {
       expect(getMealPlanDetail).toHaveBeenCalledTimes(2)

@@ -3,33 +3,68 @@
  * Tests the Supabase database configuration and basic operations
  */
 
-import { supabase } from '../../lib/supabase'
-import { getMealPlans, getUserById, getMealPlanById } from '../../lib/database-utils'
+// Check if Supabase is configured before importing
+const hasSupabaseConfig = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+)
 
-describe('Database Setup Validation', () => {
+// Only run these tests if Supabase is configured
+const describeIfConfigured = hasSupabaseConfig ? describe : describe.skip
+
+describeIfConfigured('Database Setup Validation', () => {
+  // Lazy load supabase modules only if configured
+  let supabase: any
+  let getMealPlans: any
+  let getUserById: any
+  let getMealPlanById: any
+
   beforeAll(async () => {
-    // Wait a moment for any async operations
-    await new Promise(resolve => setTimeout(resolve, 1000))
-  })
+    if (!hasSupabaseConfig) {
+      console.log('⚠️  Skipping database tests - Supabase not configured')
+      return
+    }
+
+    try {
+      console.log('Loading Supabase module...')
+      // Import modules only when needed
+      const supabaseModule = await import('../../lib/supabase')
+      console.log('✓ Supabase module loaded')
+
+      console.log('Loading database utils...')
+      const dbUtilsModule = await import('../../lib/database-utils')
+      console.log('✓ Database utils loaded')
+
+      supabase = supabaseModule.supabase
+      getMealPlans = dbUtilsModule.getMealPlans
+      getUserById = dbUtilsModule.getUserById
+      getMealPlanById = dbUtilsModule.getMealPlanById
+
+      console.log('✓ Setup complete')
+    } catch (error) {
+      console.error('Failed to load database modules:', error)
+      throw error
+    }
+  }, 10000)
 
   describe('Environment Configuration', () => {
     it('should have the correct environment variables', () => {
       expect(process.env.NEXT_PUBLIC_SUPABASE_URL).toBeDefined()
-      expect(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY).toBeDefined()
+      expect(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY).toBeDefined()
 
-      // Only check service role key if it exists (optional for some setups)
-      if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        expect(process.env.SUPABASE_SERVICE_ROLE_KEY).toBeDefined()
+      // Only check secret key if it exists (optional for some setups)
+      if (process.env.SUPABASE_SECRET_KEY) {
+        expect(process.env.SUPABASE_SECRET_KEY).toBeDefined()
       }
     })
 
     it('should have valid environment variable formats', () => {
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
       expect(url).toMatch(/^https?:\/\//) // Should be a valid URL
-      expect(anonKey).toBeDefined()
-      expect(anonKey!.length).toBeGreaterThan(50) // Supabase anon keys should be substantial JWT tokens
+      expect(publishableKey).toBeDefined()
+      expect(publishableKey!.length).toBeGreaterThan(20) // Supabase publishable keys should be substantial
     })
   })
 
@@ -78,7 +113,7 @@ describe('Database Setup Validation', () => {
       for (const table of requiredTables) {
         try {
           const { error } = await supabase
-            .from(table)
+            .from(table as any)
             .select('*')
             .limit(1)
 

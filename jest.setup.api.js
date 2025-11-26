@@ -10,11 +10,21 @@ const { TextEncoder, TextDecoder } = require('util')
 global.TextEncoder = TextEncoder
 global.TextDecoder = TextDecoder
 
+// Add ReadableStream polyfill BEFORE undici import
+if (!global.ReadableStream) {
+  const { ReadableStream } = require('stream/web')
+  global.ReadableStream = ReadableStream
+}
+
 // Mock Web APIs for Node.js environment
-const { Request, Response, Headers } = require('undici')
-global.Request = Request
-global.Response = Response
-global.Headers = Headers
+// Use Node.js built-in fetch (Node 18+) or polyfill
+if (!global.fetch) {
+  const { fetch, Request, Response, Headers } = require('undici')
+  global.fetch = fetch
+  global.Request = Request
+  global.Response = Response
+  global.Headers = Headers
+}
 
 // Extend Jest matchers
 expect.extend({

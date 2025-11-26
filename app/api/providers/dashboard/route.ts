@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get provider profile
-    const { data: provider } = await supabase
+    const { data: provider } = await supabaseAdmin
       .from('meal_plan_providers')
       .select('*')
       .eq('user_id', user.id)
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get provider's meal plans
-    const { data: mealPlans } = await supabase
+    const { data: mealPlans } = await supabaseAdmin
       .from('meal_plans')
       .select(`
         id,
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
 
     // Get recent purchases
-    const { data: recentPurchases } = await supabase
+    const { data: recentPurchases } = await supabaseAdmin
       .from('user_plan_purchases')
       .select(`
         id,
@@ -67,15 +67,15 @@ export async function GET(request: NextRequest) {
     const totalMealPlans = mealPlans?.length || 0
     const publishedPlans = mealPlans?.filter(plan => plan.is_published && plan.is_active).length || 0
     const draftPlans = mealPlans?.filter(plan => !plan.is_published).length || 0
-    const totalViews = mealPlans?.reduce((sum, plan) => sum + plan.total_views, 0) || 0
-    const totalSales = mealPlans?.reduce((sum, plan) => sum + plan.total_purchases, 0) || 0
+    const totalViews = mealPlans?.reduce((sum, plan) => sum + (plan.total_views || 0), 0) || 0
+    const totalSales = mealPlans?.reduce((sum, plan) => sum + (plan.total_purchases || 0), 0) || 0
 
     // Calculate earnings for current month
     const currentMonth = new Date()
     currentMonth.setDate(1)
     currentMonth.setHours(0, 0, 0, 0)
 
-    const { data: monthlyEarnings } = await supabase
+    const { data: monthlyEarnings } = await supabaseAdmin
       .from('user_plan_purchases')
       .select('provider_earnings')
       .eq('provider_id', provider.id)
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
     // Get top performing meal plans
     const topPlans = mealPlans
       ?.filter(plan => plan.is_published && plan.is_active)
-      .sort((a, b) => b.total_purchases - a.total_purchases)
+      .sort((a, b) => (b.total_purchases || 0) - (a.total_purchases || 0))
       .slice(0, 5)
       .map(plan => ({
         id: plan.id,

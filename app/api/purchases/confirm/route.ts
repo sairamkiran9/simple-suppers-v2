@@ -5,7 +5,7 @@ import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
 import { stripe, calculateProviderEarnings, centsToDollars } from '@/lib/api/payments'
 import { createPurchase, trackEvent } from '@/lib/database-utils'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get meal plan and provider details
-    const { data: mealPlan, error: planError } = await supabase
+    const { data: mealPlan, error: planError } = await supabaseAdmin
       .from('meal_plans')
       .select(`
         *,
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     const purchase = await createPurchase({
       user_id: user.id,
       meal_plan_id: meal_plan_id,
-      provider_id: mealPlan.provider_id,
+      provider_id: mealPlan.provider_id || undefined,
       purchase_price: totalAmount,
       provider_earnings: centsToDollars(providerEarnings),
       platform_fee: centsToDollars(platformFee),
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       event_type: 'purchase',
       user_id: user.id,
       meal_plan_id: meal_plan_id,
-      provider_id: mealPlan.provider_id,
+      provider_id: mealPlan.provider_id || undefined,
       metadata: {
         purchase_price: totalAmount,
         provider_earnings: centsToDollars(providerEarnings),

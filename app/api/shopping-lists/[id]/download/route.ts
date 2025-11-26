@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server'
 import { handleAPIError, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
+import { UUIDSchema } from '@/lib/api/validation'
 
 export async function GET(
   request: NextRequest,
@@ -17,8 +18,14 @@ export async function GET(
 
     const { id } = params
 
-    // First check if shopping list exists
-    const { data: shoppingList, error } = await supabase
+    // Validate UUID format
+    const uuidValidation = UUIDSchema.safeParse(id)
+    if (!uuidValidation.success) {
+      return ErrorResponses.validation('Shopping list ID must be a valid UUID')
+    }
+
+    // First check if shopping list exists and verify ownership
+    const { data: shoppingList, error } = await supabaseAdmin
       .from('shopping_lists')
       .select(`
         id,
@@ -35,7 +42,7 @@ export async function GET(
       return ErrorResponses.notFound('Shopping list')
     }
 
-    // Then verify ownership
+    // Verify ownership - this should return 403
     if (shoppingList.user_id !== user.id) {
       return ErrorResponses.forbidden('You can only download your own shopping lists')
     }
@@ -57,7 +64,7 @@ export async function GET(
       const pdfContent = generatePDFContent(
         (shoppingList as any).meal_plan.title,
         ingredients,
-        shoppingList.generated_at
+        shoppingList.generated_at || new Date().toISOString()
       )
 
       return new Response(pdfContent, {
@@ -73,7 +80,7 @@ export async function GET(
       const txtContent = generateTextContent(
         (shoppingList as any).meal_plan.title,
         ingredients,
-        shoppingList.generated_at
+        shoppingList.generated_at || new Date().toISOString()
       )
 
       return new Response(txtContent, {

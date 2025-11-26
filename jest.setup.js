@@ -86,6 +86,9 @@ Object.defineProperty(window, 'scrollTo', {
   value: jest.fn(),
 })
 
+// Mock fetch
+global.fetch = jest.fn()
+
 // Setup console overrides for cleaner test output
 const originalError = console.error
 beforeAll(() => {

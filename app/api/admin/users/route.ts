@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const { user_type, is_active, search, limit, offset } = validation.data
 
     // Build query
-    let query = supabaseAdmin!
+    let query = supabaseAdmin
       .from('users')
       .select(`
         id,

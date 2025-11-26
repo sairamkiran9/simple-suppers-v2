@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     const { status, limit, offset } = validation.data
 
     // Build query
-    let query = supabaseAdmin!
+    let query = supabaseAdmin
       .from('meal_plans')
       .select(`
         id,

@@ -95,13 +95,9 @@ describe('Feed API Client', () => {
   })
 
   describe('createFeedPost', () => {
-    it('should create a new post when authenticated', async () => {
+    it('should create a new post with userId', async () => {
       const { supabaseAdmin } = require('@/lib/supabase')
       const mockChain = createChainableMock()
-      
-      supabaseAdmin.auth.getUser.mockResolvedValue({
-        data: { user: { id: 'user-123' } }
-      })
       
       mockChain.single.mockResolvedValue({
         data: { user_type: 'provider' },
@@ -129,7 +125,7 @@ describe('Feed API Client', () => {
         title: 'New Post',
         content: 'Content',
         post_type: 'recipe_tip'
-      })
+      }, 'user-123')
 
       expect(result.id).toBe('post-1')
       expect(insertMock.insert).toHaveBeenCalledWith({
@@ -141,18 +137,23 @@ describe('Feed API Client', () => {
       })
     })
 
-    it('should throw error when not authenticated', async () => {
+    it('should handle database errors', async () => {
       const { supabaseAdmin } = require('@/lib/supabase')
+      const mockChain = createChainableMock()
       
-      supabaseAdmin.auth.getUser.mockResolvedValue({
-        data: { user: null }
+      const error = new Error('Database error')
+      mockChain.single.mockResolvedValue({
+        data: null,
+        error
       })
+      
+      supabaseAdmin.from.mockReturnValue(mockChain)
 
       await expect(createFeedPost({
         title: 'Test',
         content: 'Test',
         post_type: 'recipe_tip'
-      })).rejects.toThrow('Not authenticated')
+      }, 'user-123')).rejects.toThrow(error)
     })
   })
 

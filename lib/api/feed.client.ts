@@ -41,10 +41,18 @@ export async function createFeedPost(post: {
   related_meal_plan_id?: string
   tags?: string[]
 }): Promise<FeedPost> {
+  // Get auth token from localStorage
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+  
+  if (!token) {
+    throw new Error('Not authenticated')
+  }
+
   const response = await fetch('/api/feed/posts', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify(post),
   })

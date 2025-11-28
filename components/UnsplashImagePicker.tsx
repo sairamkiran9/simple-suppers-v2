@@ -89,37 +89,39 @@ export function UnsplashImagePicker({ open, onClose, onSelect }: UnsplashImagePi
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[800px] max-h-[80vh] bg-white dark:bg-gray-800">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ImageIcon className="w-5 h-5" />
-            Choose an Image
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[800px] h-[85vh] flex flex-col bg-white dark:bg-gray-800 p-0">
+        <div className="px-6 pt-6 pb-4 border-b">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5" />
+              Choose an Image
+            </DialogTitle>
+          </DialogHeader>
 
-        {/* Search Input */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            placeholder="Search for food, recipes, cooking..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="pl-10"
-          />
-          {query && (
-            <button
-              onClick={() => setQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+          {/* Search Input */}
+          <div className="relative mt-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              placeholder="Search for food, recipes, cooking..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-10"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Photo Grid */}
-        <div className="overflow-y-auto max-h-[400px] -mx-2">
+        {/* Photo Grid - Scrollable */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
+            <div className="flex items-center justify-center h-full">
               <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
             </div>
           ) : error ? (
@@ -129,16 +131,15 @@ export function UnsplashImagePicker({ open, onClose, onSelect }: UnsplashImagePi
               No photos found. Try a different search term.
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2 p-2">
+            <div className="grid grid-cols-3 gap-3">
               {photos.map((photo) => (
                 <button
                   key={photo.id}
                   onClick={() => handleSelect(photo)}
-                  className={`relative aspect-square overflow-hidden rounded-lg transition-all ${
-                    selectedPhoto?.id === photo.id
-                      ? 'ring-4 ring-teal-500 ring-offset-2'
-                      : 'hover:opacity-80'
-                  }`}
+                  className={`relative aspect-square overflow-hidden rounded-lg transition-all ${selectedPhoto?.id === photo.id
+                    ? 'ring-4 ring-teal-500'
+                    : 'hover:opacity-80 hover:ring-2 hover:ring-gray-300'
+                    }`}
                 >
                   <Image
                     src={photo.urls.small}
@@ -163,51 +164,50 @@ export function UnsplashImagePicker({ open, onClose, onSelect }: UnsplashImagePi
           )}
         </div>
 
-        {/* Selected Photo Preview & Attribution */}
-        {selectedPhoto && (
-          <div className="border-t pt-4 mt-2">
-            <div className="flex items-center gap-4">
-              <Image
-                src={selectedPhoto.urls.small}
-                alt={selectedPhoto.alt_description || ''}
-                className="w-16 h-16 object-cover rounded-lg"
-                width={64}
-                height={64}
-              />
-              <div className="flex-1">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Photo by{' '}
-                  <a
-                    href={`${selectedPhoto.user.links.html}?utm_source=simple_suppers&utm_medium=referral`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-teal-600 hover:underline"
-                  >
-                    {selectedPhoto.user.name}
-                  </a>{' '}
-                  on{' '}
-                  <a
-                    href="https://unsplash.com?utm_source=simple_suppers&utm_medium=referral"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-teal-600 hover:underline"
-                  >
-                    Unsplash
-                  </a>
-                </p>
+        {/* Footer - Always visible */}
+        <div className="px-6 py-4 border-t bg-gray-50 dark:bg-gray-900">
+          {/* Selected Photo Preview & Attribution */}
+          {selectedPhoto && (
+            <div className="mb-4">
+              <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                <Image
+                  src={selectedPhoto.urls.small}
+                  alt={selectedPhoto.alt_description || ''}
+                  className="w-12 h-12 object-cover rounded"
+                  width={48}
+                  height={48}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                    Photo by{' '}
+                    <a
+                      href={`${selectedPhoto.user.links.html}?utm_source=simple_suppers&utm_medium=referral`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-teal-600 hover:underline font-medium"
+                    >
+                      {selectedPhoto.user.name}
+                    </a>{' '}
+                    on Unsplash
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Actions */}
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleConfirm} disabled={!selectedPhoto}>
-            Use This Image
-          </Button>
+          {/* Actions */}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirm}
+              disabled={!selectedPhoto}
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+            >
+              {selectedPhoto ? 'Use This Image' : 'Select an Image'}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

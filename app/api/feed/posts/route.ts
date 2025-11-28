@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getFeedPosts, createFeedPost } from '@/lib/api/feed.server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { verifyToken } from '@/lib/api/auth'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,8 +13,13 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('authorization')
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.substring(7)
-      const { data } = await supabaseAdmin.auth.getUser(token)
-      userId = data.user?.id
+      try {
+        const payload = verifyToken(token)
+        userId = payload.id
+      } catch {
+        // Invalid token, continue without user ID
+        userId = undefined
+      }
     }
 
     const result = await getFeedPosts(page, limit, userId)
@@ -31,6 +36,29 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Get user ID from auth header
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      )
+    }
+
+    const token = authHeader.substring(7)
+    
+    // Verify JWT token
+    let userId: string
+    try {
+      const payload = verifyToken(token)
+      userId = payload.id
+    } catch (authError) {
+      return NextResponse.json(
+        { error: 'Invalid or expired token' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { title, content, post_type, image_url, related_meal_plan_id, tags } = body
 
@@ -48,7 +76,7 @@ export async function POST(request: NextRequest) {
       image_url,
       related_meal_plan_id,
       tags
-    })
+    }, userId)
 
     return NextResponse.json(post, { status: 201 })
   } catch (error) {

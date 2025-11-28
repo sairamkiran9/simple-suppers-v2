@@ -63,21 +63,18 @@ export async function createFeedPost(post: {
   image_url?: string
   related_meal_plan_id?: string
   tags?: string[]
-}): Promise<FeedPost> {
-  const { data: { user } } = await supabaseAdmin.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
+}, userId: string): Promise<FeedPost> {
   // Get user type to set author_type
   const { data: userData } = await supabaseAdmin
     .from('users')
     .select('user_type')
-    .eq('id', user.id)
+    .eq('id', userId)
     .single()
 
   const { data, error } = await supabaseAdmin
     .from('feed_posts')
     .insert({
-      author_id: user.id,
+      author_id: userId,
       author_type: (userData?.user_type as 'user' | 'provider' | 'admin') || 'user',
       ...post
     })

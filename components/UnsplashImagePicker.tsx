@@ -7,6 +7,7 @@ import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { searchUnsplashPhotos, getFoodPhotos, trackDownload, getAttribution, type UnsplashPhoto } from '@/lib/unsplash'
 import { useDebounce } from '@/hooks/useDebounce'
+import Image from 'next/image'
 
 interface UnsplashImagePickerProps {
   open: boolean
@@ -23,23 +24,7 @@ export function UnsplashImagePicker({ open, onClose, onSelect }: UnsplashImagePi
 
   const debouncedQuery = useDebounce(query, 500)
 
-  // Load default food photos on open
-  useEffect(() => {
-    if (open && photos.length === 0 && !query) {
-      loadDefaultPhotos()
-    }
-  }, [open])
-
-  // Search when query changes
-  useEffect(() => {
-    if (debouncedQuery) {
-      searchPhotos(debouncedQuery)
-    } else if (open) {
-      loadDefaultPhotos()
-    }
-  }, [debouncedQuery])
-
-  const loadDefaultPhotos = async () => {
+  const loadDefaultPhotos = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -50,9 +35,9 @@ export function UnsplashImagePicker({ open, onClose, onSelect }: UnsplashImagePi
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const searchPhotos = async (searchQuery: string) => {
+  const searchPhotos = useCallback(async (searchQuery: string) => {
     setLoading(true)
     setError(null)
     try {
@@ -63,7 +48,23 @@ export function UnsplashImagePicker({ open, onClose, onSelect }: UnsplashImagePi
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  // Load default food photos on open
+  useEffect(() => {
+    if (open && photos.length === 0 && !query) {
+      loadDefaultPhotos()
+    }
+  }, [open, photos.length, query, loadDefaultPhotos])
+
+  // Search when query changes
+  useEffect(() => {
+    if (debouncedQuery) {
+      searchPhotos(debouncedQuery)
+    } else if (open) {
+      loadDefaultPhotos()
+    }
+  }, [debouncedQuery, open, loadDefaultPhotos, searchPhotos])
 
   const handleSelect = async (photo: UnsplashPhoto) => {
     setSelectedPhoto(photo)
@@ -139,11 +140,13 @@ export function UnsplashImagePicker({ open, onClose, onSelect }: UnsplashImagePi
                       : 'hover:opacity-80'
                   }`}
                 >
-                  <img
+                  <Image
                     src={photo.urls.small}
                     alt={photo.alt_description || 'Unsplash photo'}
                     className="w-full h-full object-cover"
                     loading="lazy"
+                    width={300}
+                    height={300}
                   />
                   {selectedPhoto?.id === photo.id && (
                     <div className="absolute inset-0 bg-teal-500/20 flex items-center justify-center">
@@ -164,10 +167,12 @@ export function UnsplashImagePicker({ open, onClose, onSelect }: UnsplashImagePi
         {selectedPhoto && (
           <div className="border-t pt-4 mt-2">
             <div className="flex items-center gap-4">
-              <img
+              <Image
                 src={selectedPhoto.urls.small}
                 alt={selectedPhoto.alt_description || ''}
                 className="w-16 h-16 object-cover rounded-lg"
+                width={64}
+                height={64}
               />
               <div className="flex-1">
                 <p className="text-sm text-gray-600 dark:text-gray-400">

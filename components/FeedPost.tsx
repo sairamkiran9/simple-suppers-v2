@@ -17,6 +17,7 @@ import { useAuth } from '@/lib/auth-context'
 import { toast } from 'sonner'
 import { CommentsSection } from './CommentsSection'
 import type { FeedPostWithAuthor } from '@/lib/database-types'
+import Image from 'next/image'
 
 interface FeedPostProps {
   post: FeedPostWithAuthor
@@ -116,10 +117,12 @@ export function FeedPost({ post }: FeedPostProps) {
       {/* Image - Instagram Style: Full width, no padding */}
       {post.image_url && (
         <div className="relative aspect-square bg-gray-100 dark:bg-gray-900">
-          <img
+          <Image
             src={post.image_url}
             alt={post.title}
             className="w-full h-full object-cover"
+            width={500}
+            height={500}
           />
         </div>
       )}
@@ -203,7 +206,7 @@ export function FeedPost({ post }: FeedPostProps) {
               {post.meal_plan.title}
             </h4>
             <p className="text-sm text-teal-600 dark:text-teal-400 font-medium">
-              {post.meal_plan.is_free ? 'Free' : `$${post.meal_plan.final_price}`}
+              {post.meal_plan.is_free ? 'Free' : `${post.meal_plan.final_price}`}
             </p>
           </div>
         )}

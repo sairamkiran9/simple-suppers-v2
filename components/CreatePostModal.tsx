@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import Image from 'next/image'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -159,10 +160,12 @@ export function CreatePostModal({ open, onClose, onPostCreated }: CreatePostModa
               <label className="text-sm font-medium">Image (Optional)</label>
               {selectedImage ? (
                 <div className="relative">
-                  <img
+                  <Image
                     src={selectedImage.url}
                     alt="Selected"
                     className="w-full h-48 object-cover rounded-lg"
+                    width={600}
+                    height={240}
                   />
                   <button
                     type="button"

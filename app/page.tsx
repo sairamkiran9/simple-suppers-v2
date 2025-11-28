@@ -36,8 +36,8 @@ const Dashboard = dynamic(() => import('@/components/Dashboard'), {
   ssr: false
 });
 
-const ProviderDashboard = dynamic(() => import('@/components/ProviderDashboard'), {
-  loading: () => <div className="container"><p>Loading provider dashboard...</p></div>,
+const CreatorDashboard = dynamic(() => import('@/components/CreatorDashboard'), {
+  loading: () => <div className="container"><p>Loading creator dashboard...</p></div>,
   ssr: false
 });
 
@@ -70,12 +70,12 @@ export default function Home() {
 
   const handleViewChange = (view: ViewType) => {
     // Check authentication for protected routes
-    if (view === 'dashboard' && (!isAuthenticated || user?.user_type !== 'user')) {
+    if (view === 'dashboard' && !isAuthenticated) {
       setIsAuthModalOpen(true);
       return;
     }
 
-    if (view === 'provider' && (!isAuthenticated || user?.user_type !== 'provider')) {
+    if (view === 'creator' && (!isAuthenticated || !user?.is_creator)) {
       setIsAuthModalOpen(true);
       return;
     }
@@ -272,8 +272,8 @@ export default function Home() {
           />
         ) : null;
 
-      case 'provider':
-        return <ProviderDashboard />;
+      case 'creator':
+        return <CreatorDashboard />;
 
       case 'dashboard':
         return <Dashboard key={dashboardKey} onViewMealPlan={handleViewDetails} />;

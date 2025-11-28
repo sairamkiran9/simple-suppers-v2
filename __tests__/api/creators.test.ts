@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server'
-import { GET as profileGET, POST as profilePOST } from '@/app/api/providers/profile/route'
-import { GET as dashboardGET } from '@/app/api/providers/dashboard/route'
-import { GET as mealPlansGET } from '@/app/api/providers/meal-plans/route'
+import { GET as profileGET, POST as profilePOST } from '@/app/api/creators/profile/route'
+import { GET as dashboardGET } from '@/app/api/creators/dashboard/route'
+import { GET as mealPlansGET } from '@/app/api/creators/meal-plans/route'
 
 // Mock Supabase with dynamic configuration
 const mockSupabase = {
   // Storage for configurable mock responses by table
   mockResponses: {
-    meal_plan_providers: { data: null, error: null },
+    users: { data: null, error: null },
     meal_plans: { data: null, error: null, count: null },
     user_plan_purchases: { data: null, error: null },
     update: { data: null, error: null },
@@ -30,7 +30,7 @@ const mockSupabase = {
   // Reset to default state
   reset: () => {
     mockSupabase.mockResponses = {
-      meal_plan_providers: { data: null, error: null },
+      users: { data: null, error: null },
       meal_plans: { data: null, error: null, count: null },
       user_plan_purchases: { data: null, error: null },
       update: { data: null, error: null },
@@ -94,25 +94,40 @@ jest.mock('@/lib/supabase', () => {
 // Export mock utilities for test configuration
 const { supabase } = require('@/lib/supabase')
 
-// Mock provider authentication
+// Mock creator authentication
+const mockAuthUser = {
+  id: 'creator-user-id',
+  email: 'creator@example.com',
+  user_type: 'user',
+  name: 'Test Creator',
+  subscription_tier: 'premium',
+  is_creator: true,
+  creator_display_name: 'Test Kitchen',
+  creator_bio: 'Amazing meals for everyone',
+  creator_profile_image_url: 'https://example.com/image.jpg',
+  creator_email_verified: true,
+  total_earnings: 350.00,
+  total_meal_plans_created: 5,
+  creator_rating: 4.5,
+  is_active: true,
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z'
+}
+
 jest.mock('@/lib/api/auth', () => ({
-  requireAuth: jest.fn(() => Promise.resolve({
-    id: 'provider-user-id',
-    email: 'provider@example.com',
-    user_type: 'provider',
-    name: 'Test Provider',
-    subscription_tier: 'premium'
-  })),
-  checkIsProvider: jest.fn(() => Promise.resolve({
-    isProvider: true,
-    providerProfile: {
-      id: 'provider-1',
-      business_name: 'Test Kitchen',
-      bio: 'Amazing meals',
-      profile_image_url: 'https://example.com/image.jpg',
+  requireAuth: jest.fn(() => Promise.resolve(mockAuthUser)),
+  checkIsCreator: jest.fn(() => Promise.resolve({
+    isCreator: true,
+    creatorProfile: {
+      id: 'user-1',
+      is_creator: true,
+      creator_display_name: 'Test Kitchen',
+      creator_bio: 'Amazing meals',
+      creator_profile_image_url: 'https://example.com/image.jpg',
+      creator_email_verified: true,
       total_earnings: 250.00,
-      total_plans: 5,
-      average_rating: 4.5
+      total_meal_plans_created: 5,
+      creator_rating: 4.5
     }
   }))
 }))
@@ -124,25 +139,25 @@ jest.mock('@/lib/api/rate-limit', () => ({
 
 // Mock validation
 jest.mock('@/lib/api/validation', () => ({
-  ProviderProfileSchema: {},
+  CreatorProfileSchema: {},
   validateBody: jest.fn((schema, body) => {
-    // Check for empty business_name to trigger validation error
-    if (body.business_name === '') {
+    // Check for empty creator_display_name to trigger validation error
+    if (body.creator_display_name === '') {
       return {
         success: false,
-        error: 'Business name is required'
+        error: 'Creator display name is required'
       }
     }
     return {
       success: true,
       data: {
-        business_name: body.business_name || 'Test Kitchen',
-        bio: body.bio || 'Amazing meals',
-        profile_image_url: body.profile_image_url || 'https://example.com/image.jpg'
+        creator_display_name: body.creator_display_name || 'Test Kitchen',
+        creator_bio: body.creator_bio || 'Amazing meals',
+        creator_profile_image_url: body.creator_profile_image_url || 'https://example.com/image.jpg'
       }
     }
   }),
-  ProviderMealPlansQuerySchema: {},
+  CreatorMealPlansQuerySchema: {},
   validateQuery: jest.fn((schema, params) => {
     // Check for high limit to trigger validation error
     const limit = params.get ? params.get('limit') : params.limit
@@ -163,37 +178,16 @@ jest.mock('@/lib/api/validation', () => ({
   })
 }))
 
-describe('/api/providers/profile', () => {
+describe('/api/creators/profile', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockSupabase.reset()
   })
 
-  it('should fetch provider profile successfully', async () => {
-    const mockProvider = {
-      id: 'provider-1',
-      user_id: 'provider-user-id',
-      business_name: 'Test Kitchen',
-      bio: 'Amazing meals for everyone',
-      profile_image_url: 'https://example.com/image.jpg',
-      email_verified: true,
-      total_earnings: 250.00,
-      total_plans: 5,
-      average_rating: 4.5,
-      is_active: true,
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z'
-    }
-
-    // Configure mock to return provider data
-    mockSupabase.setTableResponse('meal_plan_providers', {
-      data: mockProvider,
-      error: null
-    })
-
-    const request = new NextRequest('http://localhost:3000/api/providers/profile', {
+  it('should fetch creator profile successfully', async () => {
+    const request = new NextRequest('http://localhost:3000/api/creators/profile', {
       headers: {
-        'Authorization': 'Bearer provider-token'
+        'Authorization': 'Bearer creator-token'
       }
     })
 
@@ -202,74 +196,74 @@ describe('/api/providers/profile', () => {
 
     expect(response.status).toBe(200)
     expect(data.success).toBe(true)
-    expect(data.data.provider.business_name).toBe('Test Kitchen')
-    expect(data.data.provider.total_earnings).toBe(250.00)
+    expect(data.data.creator.creator_display_name).toBe('Test Kitchen')
+    expect(data.data.creator.total_earnings).toBe(350.00)
   })
 
-  it('should return 404 for non-existent provider profile', async () => {
-    // Configure mock to return no data (triggers 404)
-    mockSupabase.setTableResponse('meal_plan_providers', {
-      data: null,
-      error: { message: 'No rows returned' }
+  it('should return 403 for non-creator user', async () => {
+    const { requireAuth } = require('@/lib/api/auth')
+    requireAuth.mockResolvedValueOnce({
+      ...mockAuthUser,
+      is_creator: false
     })
 
-    const request = new NextRequest('http://localhost:3000/api/providers/profile', {
+    const request = new NextRequest('http://localhost:3000/api/creators/profile', {
       headers: {
-        'Authorization': 'Bearer provider-token'
+        'Authorization': 'Bearer user-token'
       }
     })
 
     const response = await profileGET(request)
     const data = await response.json()
 
-    expect(response.status).toBe(404)
+    expect(response.status).toBe(403)
     expect(data.success).toBe(false)
-    expect(data.error.message).toBe('Provider profile not found')
+    expect(data.error.message).toContain('creator profile')
   })
 
-  it('should update provider profile successfully', async () => {
-    const existingProvider = {
-      id: 'provider-1',
-      user_id: 'provider-user-id'
+  it('should update creator profile successfully', async () => {
+    const existingCreator = {
+      id: 'user-1',
+      is_creator: true
     }
 
-    const updatedProvider = {
-      id: 'provider-1',
-      user_id: 'provider-user-id',
-      business_name: 'Updated Kitchen',
-      bio: 'Updated bio',
-      profile_image_url: 'https://example.com/new-image.jpg',
-      email_verified: true,
+    const updatedCreator = {
+      id: 'user-1',
+      is_creator: true,
+      creator_display_name: 'Updated Kitchen',
+      creator_bio: 'Updated bio',
+      creator_profile_image_url: 'https://example.com/new-image.jpg',
+      creator_email_verified: true,
       is_active: true,
       total_earnings: 0,
-      total_plans: 0,
-      average_rating: 0,
+      total_meal_plans_created: 0,
+      creator_rating: 0,
       created_at: '2024-01-01T00:00:00Z',
       updated_at: '2024-01-01T00:00:00Z'
     }
 
-    // Configure mock for existing provider check (first call)
-    mockSupabase.setTableResponse('meal_plan_providers', {
-      data: existingProvider,
+    // Configure mock for existing creator check (first call)
+    mockSupabase.setTableResponse('users', {
+      data: existingCreator,
       error: null
     })
 
     // Configure mock for update operation
     mockSupabase.setMockResponse('update', {
-      data: updatedProvider,
+      data: updatedCreator,
       error: null
     })
 
-    const request = new NextRequest('http://localhost:3000/api/providers/profile', {
+    const request = new NextRequest('http://localhost:3000/api/creators/profile', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer provider-token',
+        'Authorization': 'Bearer creator-token',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        business_name: 'Updated Kitchen',
-        bio: 'Updated bio',
-        profile_image_url: 'https://example.com/new-image.jpg'
+        creator_display_name: 'Updated Kitchen',
+        creator_bio: 'Updated bio',
+        creator_profile_image_url: 'https://example.com/new-image.jpg'
       })
     })
 
@@ -278,19 +272,19 @@ describe('/api/providers/profile', () => {
 
     expect(response.status).toBe(200)
     expect(data.success).toBe(true)
-    expect(data.data.provider.business_name).toBe('Updated Kitchen')
+    expect(data.data.creator.creator_display_name).toBe('Updated Kitchen')
   })
 
-  it('should validate business name requirement', async () => {
-    const request = new NextRequest('http://localhost:3000/api/providers/profile', {
+  it('should validate creator display name requirement', async () => {
+    const request = new NextRequest('http://localhost:3000/api/creators/profile', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer provider-token',
+        'Authorization': 'Bearer creator-token',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        business_name: '', // Empty business name
-        bio: 'Updated bio'
+        creator_display_name: '', // Empty creator display name
+        creator_bio: 'Updated bio'
       })
     })
 
@@ -299,25 +293,25 @@ describe('/api/providers/profile', () => {
 
     expect(response.status).toBe(400)
     expect(data.success).toBe(false)
-    expect(data.error.message).toContain('Business name is required')
+    expect(data.error.message).toContain('Creator display name is required')
   })
 })
 
-describe('/api/providers/dashboard', () => {
+describe('/api/creators/dashboard', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockSupabase.reset()
   })
 
-  it('should fetch provider dashboard data successfully', async () => {
-    // Mock provider profile
-    const mockProvider = {
-      id: 'provider-1',
-      user_id: 'provider-user-id',
-      business_name: 'Test Kitchen',
+  it('should fetch creator dashboard data successfully', async () => {
+    // Mock creator profile
+    const mockCreator = {
+      id: 'user-1',
+      is_creator: true,
+      creator_display_name: 'Test Kitchen',
       total_earnings: 350.00,
-      total_plans: 5,
-      average_rating: 4.5
+      total_meal_plans_created: 5,
+      creator_rating: 4.5
     }
 
     // Mock meal plans
@@ -340,7 +334,7 @@ describe('/api/providers/dashboard', () => {
       {
         id: 'purchase-1',
         purchase_price: 35.00,
-        provider_earnings: 24.50,
+        creator_earnings: 24.50,
         purchased_at: '2024-01-01T00:00:00Z',
         status: 'completed',
         meal_plan: { title: 'Test Plan' },
@@ -350,12 +344,12 @@ describe('/api/providers/dashboard', () => {
 
     // Mock monthly earnings
     const mockMonthlyEarnings = [
-      { provider_earnings: 24.50 }
+      { creator_earnings: 24.50 }
     ]
 
     // Configure mock responses for each table
-    mockSupabase.setTableResponse('meal_plan_providers', {
-      data: mockProvider,
+    mockSupabase.setTableResponse('users', {
+      data: mockCreator,
       error: null
     })
 
@@ -369,9 +363,9 @@ describe('/api/providers/dashboard', () => {
       error: null
     })
 
-    const request = new NextRequest('http://localhost:3000/api/providers/dashboard', {
+    const request = new NextRequest('http://localhost:3000/api/creators/dashboard', {
       headers: {
-        'Authorization': 'Bearer provider-token'
+        'Authorization': 'Bearer creator-token'
       }
     })
 
@@ -380,52 +374,52 @@ describe('/api/providers/dashboard', () => {
 
     expect(response.status).toBe(200)
     expect(data.success).toBe(true)
-    expect(data.data.provider).toBeDefined()
+    expect(data.data.creator).toBeDefined()
     expect(data.data.analytics).toBeDefined()
-    expect(data.data.provider.total_earnings).toBe(350.00)
-    expect(data.data.provider.total_plans).toBe(5)
+    expect(data.data.creator.total_earnings).toBe(350.00)
+    expect(data.data.creator.total_plans).toBe(5)
     expect(data.data.recent_purchases).toHaveLength(1)
   })
 
-  it('should return 404 when provider profile not found for dashboard', async () => {
-    // Configure mock to return no provider data
-    mockSupabase.setTableResponse('meal_plan_providers', {
-      data: null,
-      error: null
+  it('should return 403 when user is not a creator for dashboard', async () => {
+    const { requireAuth } = require('@/lib/api/auth')
+    requireAuth.mockResolvedValueOnce({
+      ...mockAuthUser,
+      is_creator: false
     })
 
-    const request = new NextRequest('http://localhost:3000/api/providers/dashboard', {
+    const request = new NextRequest('http://localhost:3000/api/creators/dashboard', {
       headers: {
-        'Authorization': 'Bearer provider-token'
+        'Authorization': 'Bearer user-token'
       }
     })
 
     const response = await dashboardGET(request)
     const data = await response.json()
 
-    expect(response.status).toBe(404)
+    expect(response.status).toBe(403)
     expect(data.success).toBe(false)
-    expect(data.error.message).toBe('Provider profile not found')
+    expect(data.error.message).toContain('creator')
   })
 })
 
-describe('/api/providers/meal-plans', () => {
+describe('/api/creators/meal-plans', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockSupabase.reset()
   })
 
-  it('should fetch provider meal plans successfully', async () => {
-    // Mock provider profile
-    const mockProvider = {
-      id: 'provider-1',
-      user_id: 'provider-user-id'
+  it('should fetch creator meal plans successfully', async () => {
+    // Mock creator profile
+    const mockCreator = {
+      id: 'user-1',
+      is_creator: true
     }
 
     const mockMealPlans = [
       {
         id: 'plan-1',
-        title: 'Provider Plan 1',
+        title: 'Creator Plan 1',
         description: 'Test description',
         duration_days: 7,
         is_published: true,
@@ -437,8 +431,8 @@ describe('/api/providers/meal-plans', () => {
     ]
 
     // Configure mock responses for each table
-    mockSupabase.setTableResponse('meal_plan_providers', {
-      data: mockProvider,
+    mockSupabase.setTableResponse('users', {
+      data: mockCreator,
       error: null
     })
 
@@ -448,9 +442,9 @@ describe('/api/providers/meal-plans', () => {
       count: 1
     })
 
-    const request = new NextRequest('http://localhost:3000/api/providers/meal-plans', {
+    const request = new NextRequest('http://localhost:3000/api/creators/meal-plans', {
       headers: {
-        'Authorization': 'Bearer provider-token'
+        'Authorization': 'Bearer creator-token'
       }
     })
 
@@ -460,17 +454,17 @@ describe('/api/providers/meal-plans', () => {
     expect(response.status).toBe(200)
     expect(data.success).toBe(true)
     expect(data.data.meal_plans).toHaveLength(1)
-    expect(data.data.meal_plans[0].title).toBe('Provider Plan 1')
+    expect(data.data.meal_plans[0].title).toBe('Creator Plan 1')
     expect(data.data.total).toBe(1)
   })
 
   it('should filter meal plans by status', async () => {
-    const mockProvider = { id: 'provider-1', user_id: 'provider-user-id' }
+    const mockCreator = { id: 'user-1', is_creator: true }
     const mockMealPlans: any[] = []
 
     // Configure mock responses for each table
-    mockSupabase.setTableResponse('meal_plan_providers', {
-      data: mockProvider,
+    mockSupabase.setTableResponse('users', {
+      data: mockCreator,
       error: null
     })
 
@@ -480,9 +474,9 @@ describe('/api/providers/meal-plans', () => {
       count: 0
     })
 
-    const request = new NextRequest('http://localhost:3000/api/providers/meal-plans?status=draft', {
+    const request = new NextRequest('http://localhost:3000/api/creators/meal-plans?status=draft', {
       headers: {
-        'Authorization': 'Bearer provider-token'
+        'Authorization': 'Bearer creator-token'
       }
     })
 
@@ -493,17 +487,17 @@ describe('/api/providers/meal-plans', () => {
   })
 
   it('should validate limit parameter', async () => {
-    // Set up provider so validation can be reached
-    const mockProvider = { id: 'provider-1', user_id: 'provider-user-id' }
+    // Set up creator so validation can be reached
+    const mockCreator = { id: 'user-1', is_creator: true }
 
-    mockSupabase.setTableResponse('meal_plan_providers', {
-      data: mockProvider,
+    mockSupabase.setTableResponse('users', {
+      data: mockCreator,
       error: null
     })
 
-    const request = new NextRequest('http://localhost:3000/api/providers/meal-plans?limit=150', {
+    const request = new NextRequest('http://localhost:3000/api/creators/meal-plans?limit=150', {
       headers: {
-        'Authorization': 'Bearer provider-token'
+        'Authorization': 'Bearer creator-token'
       }
     })
 

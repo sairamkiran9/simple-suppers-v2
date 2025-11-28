@@ -10,10 +10,26 @@ const { TextEncoder, TextDecoder } = require('util')
 global.TextEncoder = TextEncoder
 global.TextDecoder = TextDecoder
 
-// Add ReadableStream polyfill BEFORE undici import
+// Add Web API polyfills BEFORE undici import
 if (!global.ReadableStream) {
   const { ReadableStream } = require('stream/web')
   global.ReadableStream = ReadableStream
+}
+
+if (!global.Blob) {
+  const { Blob } = require('buffer')
+  global.Blob = Blob
+}
+
+if (!global.File) {
+  // Simple File polyfill for Node.js
+  global.File = class File extends global.Blob {
+    constructor(bits, name, options = {}) {
+      super(bits, options)
+      this.name = name
+      this.lastModified = options.lastModified || Date.now()
+    }
+  }
 }
 
 // Mock Web APIs for Node.js environment

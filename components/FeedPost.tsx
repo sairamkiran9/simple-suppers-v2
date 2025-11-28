@@ -92,14 +92,14 @@ export function FeedPost({ post }: FeedPostProps) {
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <Avatar className="w-10 h-10 ring-2 ring-teal-500 ring-offset-2">
-            <AvatarImage src={post.provider?.profile_image_url || undefined} />
+            <AvatarImage src={post.author?.creator_profile_image_url || undefined} />
             <AvatarFallback className="bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold">
-              {(post.provider?.business_name || post.author.name)?.charAt(0).toUpperCase() || 'U'}
+              {(post.author?.creator_display_name || post.author.name)?.charAt(0).toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
           <div>
             <h3 className="font-semibold text-sm text-gray-900 dark:text-white">
-              {post.provider?.business_name || post.author.name}
+              {post.author?.creator_display_name || post.author.name}
             </h3>
             <div className="flex items-center gap-2">
               <Badge className={`${getPostTypeColor(post.post_type)} text-xs px-2 py-0`}>
@@ -178,7 +178,7 @@ export function FeedPost({ post }: FeedPostProps) {
       <div className="px-4 pb-2">
         <p className="text-sm text-gray-900 dark:text-white">
           <span className="font-semibold mr-2">
-            {post.provider?.business_name || post.author.name}
+            {post.author?.creator_display_name || post.author.name}
           </span>
           <span className="font-medium">{post.title}</span>
         </p>

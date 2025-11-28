@@ -66,7 +66,7 @@ describe('Feed Workflow Integration', () => {
       },
       provider: {
         id: 'provider-1',
-        business_name: 'Maria\'s Kitchen',
+        creator_display_name: 'Maria\'s Kitchen',
         profile_image_url: null,
         bio: 'Authentic Italian recipes'
       },
@@ -92,7 +92,7 @@ describe('Feed Workflow Integration', () => {
       },
       provider: {
         id: 'provider-2',
-        business_name: 'Family Meals Co',
+        creator_display_name: 'Family Meals Co',
         profile_image_url: null,
         bio: 'Healthy family meals'
       },

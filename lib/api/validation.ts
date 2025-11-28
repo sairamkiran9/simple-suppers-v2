@@ -106,6 +106,19 @@ export const ProviderMealPlansQuerySchema = z.object({
   offset: z.coerce.number().min(0).default(0)
 })
 
+// Creator schemas (new - replacing Provider schemas)
+export const CreatorProfileSchema = z.object({
+  creator_display_name: z.string().min(2, 'Display name must be at least 2 characters').max(255),
+  bio: z.string().min(10, 'Bio must be at least 10 characters').max(1000),
+  profile_image_url: z.string().url('Must be a valid URL').optional().or(z.literal(''))
+})
+
+export const CreatorMealPlansQuerySchema = z.object({
+  status: z.enum(['all', 'published', 'draft', 'inactive']).default('all'),
+  limit: z.coerce.number().min(1).max(100).default(20),
+  offset: z.coerce.number().min(0).default(0)
+})
+
 // Purchase schemas
 export const CreatePaymentIntentSchema = z.object({
   meal_plan_id: UUIDSchema

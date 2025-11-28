@@ -1,27 +1,27 @@
 /**
- * useProviderDashboard Hook
+ * useCreatorDashboard Hook
  *
- * Manages fetching and state for provider dashboard data
+ * Manages fetching and state for creator dashboard data
  * Provides loading, error states, and refetch functionality
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { getProviderDashboard } from '@/lib/api/provider'
-import type { ApiProviderDashboard } from '@/lib/api-types'
+import { getCreatorDashboard } from '@/lib/api/creator'
+import type { ApiCreatorDashboard } from '@/lib/api-types'
 
-interface UseProviderDashboardOptions {
+interface UseCreatorDashboardOptions {
   enabled?: boolean
 }
 
-interface UseProviderDashboardReturn {
-  data: ApiProviderDashboard | null
+interface UseCreatorDashboardReturn {
+  data: ApiCreatorDashboard | null
   isLoading: boolean
   error: string | null
   refetch: () => void
 }
 
 /**
- * Hook for fetching and managing provider dashboard data
+ * Hook for fetching and managing creator dashboard data
  *
  * @param options - Configuration options
  * @param options.enabled - Whether to automatically fetch data (default: true)
@@ -29,19 +29,19 @@ interface UseProviderDashboardReturn {
  *
  * @example
  * ```tsx
- * const { data, isLoading, error, refetch } = useProviderDashboard()
+ * const { data, isLoading, error, refetch } = useCreatorDashboard()
  *
  * if (isLoading) return <div>Loading...</div>
  * if (error) return <div>Error: {error}</div>
- * return <div>Business: {data.provider.business_name}</div>
+ * return <div>Creator: {data.creator.creator_display_name}</div>
  * ```
  */
-export function useProviderDashboard(
-  options: UseProviderDashboardOptions = {}
-): UseProviderDashboardReturn {
+export function useCreatorDashboard(
+  options: UseCreatorDashboardOptions = {}
+): UseCreatorDashboardReturn {
   const { enabled = true } = options
 
-  const [data, setData] = useState<ApiProviderDashboard | null>(null)
+  const [data, setData] = useState<ApiCreatorDashboard | null>(null)
   const [isLoading, setIsLoading] = useState(enabled)
   const [error, setError] = useState<string | null>(null)
 
@@ -52,7 +52,7 @@ export function useProviderDashboard(
     setError(null)
 
     try {
-      const response = await getProviderDashboard()
+      const response = await getCreatorDashboard()
       if (response.success && response.data) {
         setData(response.data)
       } else if (response.success) {

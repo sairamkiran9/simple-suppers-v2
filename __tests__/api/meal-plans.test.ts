@@ -81,8 +81,8 @@ describe('/api/meal-plans', () => {
         is_featured: true,
         average_rating: 4.5,
         total_purchases: 50,
-        provider: {
-          business_name: 'Mom\'s Kitchen',
+        creator: {
+          creator_display_name: 'Mom\'s Kitchen',
           profile_image_url: 'https://example.com/image.jpg'
         }
       }
@@ -126,14 +126,14 @@ describe('/api/meal-plans', () => {
         id: 'plan-1',
         title: 'Budget Meals',
         final_price: 25.00,
-        provider: { business_name: 'Test' },
+        creator: { creator_display_name: 'Test' },
         dietary_tags: []
       },
       {
         id: 'plan-2',
         title: 'Premium Meals',
         final_price: 55.00,
-        provider: { business_name: 'Test' },
+        creator: { creator_display_name: 'Test' },
         dietary_tags: []
       }
     ]
@@ -160,14 +160,14 @@ describe('/api/meal-plans', () => {
         id: 'plan-1',
         title: 'Vegetarian Meals',
         final_price: 30.00,
-        provider: { business_name: 'Test' },
+        creator: { creator_display_name: 'Test' },
         dietary_tags: ['vegetarian', 'healthy']
       },
       {
         id: 'plan-2',
         title: 'Meat Lovers',
         final_price: 35.00,
-        provider: { business_name: 'Test' },
+        creator: { creator_display_name: 'Test' },
         dietary_tags: ['high-protein']
       }
     ]
@@ -196,7 +196,7 @@ describe('/api/meal-plans', () => {
         description: 'Fast dinners for families',
         category: 'family',
         final_price: 30.00,
-        provider: { business_name: 'Test Kitchen' },
+        creator: { creator_display_name: 'Test Kitchen' },
         dietary_tags: []
       },
       {
@@ -205,7 +205,7 @@ describe('/api/meal-plans', () => {
         description: 'Elegant evening meals',
         category: 'gourmet',
         final_price: 50.00,
-        provider: { business_name: 'Fine Dining Co' },
+        creator: { creator_display_name: 'Fine Dining Co' },
         dietary_tags: []
       }
     ]
@@ -231,7 +231,7 @@ describe('/api/meal-plans', () => {
       id: `plan-${i}`,
       title: `Meal Plan ${i}`,
       final_price: 30.00,
-      provider: { business_name: 'Test' },
+      creator: { creator_display_name: 'Test' },
       dietary_tags: []
     }))
 
@@ -349,9 +349,9 @@ describe('/api/meal-plans/[id]', () => {
       dietary_tags: ['family-friendly', 'quick'],
       difficulty_level: 'beginner',
       is_free: true,
-      provider: {
+      creator: {
         id: 'provider-1',
-        business_name: 'Mom\'s Kitchen',
+        creator_display_name: 'Mom\'s Kitchen',
         bio: 'Practical meals for busy families'
       },
       meal_plan_days: [
@@ -452,9 +452,9 @@ describe('/api/meal-plans/[id]', () => {
       id: 'plan-1',
       title: 'Premium Plan',
       is_free: false,
-      provider: {
+      creator: {
         id: 'provider-1',
-        business_name: 'Test Kitchen'
+        creator_display_name: 'Test Kitchen'
       },
       meal_plan_days: []
     }

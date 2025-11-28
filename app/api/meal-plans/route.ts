@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
         plan.title.toLowerCase().includes(searchLower) ||
         plan.description.toLowerCase().includes(searchLower) ||
         plan.category?.toLowerCase().includes(searchLower) ||
-        plan.provider.business_name.toLowerCase().includes(searchLower)
+        plan.creator.creator_display_name?.toLowerCase().includes(searchLower)
       )
     }
 
@@ -123,8 +123,8 @@ export async function GET(request: NextRequest) {
       average_rating: plan.average_rating,
       total_purchases: plan.total_purchases,
       provider: {
-        name: plan.provider.business_name,
-        profile_image_url: plan.provider.profile_image_url
+        name: plan.creator.creator_display_name || plan.creator.name,
+        profile_image_url: plan.creator.creator_profile_image_url
       },
       preview_meals: [], // We'll populate this with sample meal names
       user_has_subscribed: user ? userPurchases.has(plan.id) : undefined,

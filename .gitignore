@@ -8,6 +8,7 @@ temp*
 .screenshots/
 .UNSPLASH.ENV
 .changelog/
+task*
 
 # dependencies
 /node_modules

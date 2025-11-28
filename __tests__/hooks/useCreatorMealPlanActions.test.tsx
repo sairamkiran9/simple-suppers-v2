@@ -1,18 +1,18 @@
 /**
- * Tests for useProviderMealPlanActions hook
- * Manages provider meal plan update and delete operations
+ * Tests for useCreatorMealPlanActions hook
+ * Manages creator meal plan update and delete operations
  */
 
 import { renderHook, waitFor } from '@testing-library/react'
-import { useProviderMealPlanActions } from '@/hooks/useProviderMealPlanActions'
-import * as providerApi from '@/lib/api/provider'
+import { useCreatorMealPlanActions } from '@/hooks/useCreatorMealPlanActions'
+import * as creatorApi from '@/lib/api/creator'
 import { toast } from 'sonner'
 
-// Mock the provider API module
-jest.mock('@/lib/api/provider')
+// Mock the creator API module
+jest.mock('@/lib/api/creator')
 jest.mock('sonner')
 
-describe('useProviderMealPlanActions', () => {
+describe('useCreatorMealPlanActions', () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
@@ -34,9 +34,9 @@ describe('useProviderMealPlanActions', () => {
         },
       }
 
-      ;(providerApi.updateMealPlan as jest.Mock).mockResolvedValue(mockResponse)
+      ;(creatorApi.updateMealPlan as jest.Mock).mockResolvedValue(mockResponse)
 
-      const { result } = renderHook(() => useProviderMealPlanActions())
+      const { result } = renderHook(() => useCreatorMealPlanActions())
 
       expect(result.current.isUpdating).toBe(false)
 
@@ -50,7 +50,7 @@ describe('useProviderMealPlanActions', () => {
 
       await updatePromise
 
-      expect(providerApi.updateMealPlan).toHaveBeenCalledWith('plan-1', {
+      expect(creatorApi.updateMealPlan).toHaveBeenCalledWith('plan-1', {
         title: 'Updated Title',
       })
       expect(toast.success).toHaveBeenCalledWith('Meal plan updated successfully')
@@ -74,9 +74,9 @@ describe('useProviderMealPlanActions', () => {
         },
       }
 
-      ;(providerApi.updateMealPlan as jest.Mock).mockResolvedValue(mockResponse)
+      ;(creatorApi.updateMealPlan as jest.Mock).mockResolvedValue(mockResponse)
 
-      const { result } = renderHook(() => useProviderMealPlanActions())
+      const { result } = renderHook(() => useCreatorMealPlanActions())
 
       await result.current.updateMealPlan('plan-1', { is_published: true })
 
@@ -84,7 +84,7 @@ describe('useProviderMealPlanActions', () => {
         expect(result.current.isUpdating).toBe(false)
       })
 
-      expect(providerApi.updateMealPlan).toHaveBeenCalledWith('plan-1', {
+      expect(creatorApi.updateMealPlan).toHaveBeenCalledWith('plan-1', {
         is_published: true,
       })
       expect(toast.success).toHaveBeenCalled()
@@ -107,9 +107,9 @@ describe('useProviderMealPlanActions', () => {
         },
       }
 
-      ;(providerApi.updateMealPlan as jest.Mock).mockResolvedValue(mockResponse)
+      ;(creatorApi.updateMealPlan as jest.Mock).mockResolvedValue(mockResponse)
 
-      const { result } = renderHook(() => useProviderMealPlanActions())
+      const { result } = renderHook(() => useCreatorMealPlanActions())
 
       await result.current.updateMealPlan('plan-1', { is_active: false })
 
@@ -117,7 +117,7 @@ describe('useProviderMealPlanActions', () => {
         expect(result.current.isUpdating).toBe(false)
       })
 
-      expect(providerApi.updateMealPlan).toHaveBeenCalledWith('plan-1', {
+      expect(creatorApi.updateMealPlan).toHaveBeenCalledWith('plan-1', {
         is_active: false,
       })
       expect(toast.success).toHaveBeenCalled()
@@ -125,9 +125,9 @@ describe('useProviderMealPlanActions', () => {
 
     it('should handle update errors', async () => {
       const mockError = new Error('Failed to update meal plan')
-      ;(providerApi.updateMealPlan as jest.Mock).mockRejectedValue(mockError)
+      ;(creatorApi.updateMealPlan as jest.Mock).mockRejectedValue(mockError)
 
-      const { result } = renderHook(() => useProviderMealPlanActions())
+      const { result } = renderHook(() => useCreatorMealPlanActions())
 
       await expect(
         result.current.updateMealPlan('plan-1', { title: 'Updated' })
@@ -147,9 +147,9 @@ describe('useProviderMealPlanActions', () => {
         resolveUpdate = resolve
       })
 
-      ;(providerApi.updateMealPlan as jest.Mock).mockReturnValue(updatePromise)
+      ;(creatorApi.updateMealPlan as jest.Mock).mockReturnValue(updatePromise)
 
-      const { result } = renderHook(() => useProviderMealPlanActions())
+      const { result } = renderHook(() => useCreatorMealPlanActions())
 
       const action = result.current.updateMealPlan('plan-1', { title: 'Updated' })
 
@@ -193,9 +193,9 @@ describe('useProviderMealPlanActions', () => {
         },
       }
 
-      ;(providerApi.deleteMealPlan as jest.Mock).mockResolvedValue(mockResponse)
+      ;(creatorApi.deleteMealPlan as jest.Mock).mockResolvedValue(mockResponse)
 
-      const { result } = renderHook(() => useProviderMealPlanActions())
+      const { result } = renderHook(() => useCreatorMealPlanActions())
 
       expect(result.current.isDeleting).toBe(false)
 
@@ -207,16 +207,16 @@ describe('useProviderMealPlanActions', () => {
 
       await deletePromise
 
-      expect(providerApi.deleteMealPlan).toHaveBeenCalledWith('plan-1')
+      expect(creatorApi.deleteMealPlan).toHaveBeenCalledWith('plan-1')
       expect(toast.success).toHaveBeenCalledWith('Meal plan deleted successfully')
       expect(result.current.error).toBeNull()
     })
 
     it('should handle delete errors', async () => {
       const mockError = new Error('Failed to delete meal plan')
-      ;(providerApi.deleteMealPlan as jest.Mock).mockRejectedValue(mockError)
+      ;(creatorApi.deleteMealPlan as jest.Mock).mockRejectedValue(mockError)
 
-      const { result } = renderHook(() => useProviderMealPlanActions())
+      const { result } = renderHook(() => useCreatorMealPlanActions())
 
       await expect(result.current.deleteMealPlan('plan-1')).rejects.toThrow(
         'Failed to delete meal plan'
@@ -236,9 +236,9 @@ describe('useProviderMealPlanActions', () => {
         resolveDelete = resolve
       })
 
-      ;(providerApi.deleteMealPlan as jest.Mock).mockReturnValue(deletePromise)
+      ;(creatorApi.deleteMealPlan as jest.Mock).mockReturnValue(deletePromise)
 
-      const { result } = renderHook(() => useProviderMealPlanActions())
+      const { result } = renderHook(() => useCreatorMealPlanActions())
 
       const action = result.current.deleteMealPlan('plan-1')
 
@@ -266,9 +266,9 @@ describe('useProviderMealPlanActions', () => {
 
     it('should handle not found errors', async () => {
       const mockError = new Error('Meal plan not found')
-      ;(providerApi.deleteMealPlan as jest.Mock).mockRejectedValue(mockError)
+      ;(creatorApi.deleteMealPlan as jest.Mock).mockRejectedValue(mockError)
 
-      const { result } = renderHook(() => useProviderMealPlanActions())
+      const { result } = renderHook(() => useCreatorMealPlanActions())
 
       await expect(result.current.deleteMealPlan('nonexistent')).rejects.toThrow(
         'Meal plan not found'

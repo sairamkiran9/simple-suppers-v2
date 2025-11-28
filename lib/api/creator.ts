@@ -1,25 +1,26 @@
 /**
- * Provider API Module
+ * Creator API Module
  *
- * Provides functions for provider-related API operations:
- * - Fetching provider dashboard data
- * - Managing provider meal plans (CRUD operations)
- * - Updating provider profile
+ * Provides functions for creator-related API operations:
+ * - Fetching creator dashboard data
+ * - Managing creator meal plans (CRUD operations)
+ * - Updating creator profile
+ * - Enabling creator mode
  */
 
 import { apiClient } from '@/lib/api-client'
 import type {
-  ApiProviderDashboard,
-  ApiProviderProfile,
-  UpdateProviderProfileRequest,
+  ApiCreatorDashboard,
+  ApiCreatorProfile,
+  UpdateCreatorProfileRequest,
   APIResponse,
 } from '@/lib/api-types'
 
 /**
- * Type for meal plan data in provider context
+ * Type for meal plan data in creator context
  * Matches the database schema and API response
  */
-export interface ApiProviderMealPlan {
+export interface ApiCreatorMealPlan {
   id: string
   title: string
   description: string
@@ -71,46 +72,55 @@ export interface UpdateMealPlanData {
 }
 
 /**
- * Fetches the provider's dashboard data including analytics and top plans
+ * Request body for enabling creator mode
+ */
+export interface EnableCreatorModeData {
+  creator_display_name: string
+  bio: string
+  profile_image_url?: string
+}
+
+/**
+ * Fetches the creator's dashboard data including analytics and top plans
  *
- * @returns Promise containing dashboard data with provider info, analytics, recent purchases, and top performing plans
+ * @returns Promise containing dashboard data with creator info, analytics, recent purchases, and top performing plans
  * @throws Error if the request fails
  *
  * @example
  * ```typescript
- * const response = await getProviderDashboard()
+ * const response = await getCreatorDashboard()
  * if (response.success && response.data) {
- *   console.log(response.data.provider.business_name)
+ *   console.log(response.data.creator.creator_display_name)
  *   console.log(response.data.analytics.total_meal_plans)
  * }
  * ```
  */
-export async function getProviderDashboard(): Promise<APIResponse<ApiProviderDashboard>> {
-  return await apiClient.get<ApiProviderDashboard>('/providers/dashboard')
+export async function getCreatorDashboard(): Promise<APIResponse<ApiCreatorDashboard>> {
+  return await apiClient.get<ApiCreatorDashboard>('/creators/dashboard')
 }
 
 /**
- * Fetches all meal plans belonging to the authenticated provider
+ * Fetches all meal plans belonging to the authenticated creator
  *
- * @returns Promise containing array of provider's meal plans
+ * @returns Promise containing array of creator's meal plans
  * @throws Error if the request fails
  *
  * @example
  * ```typescript
- * const response = await getProviderMealPlans()
+ * const response = await getCreatorMealPlans()
  * if (response.success && response.data) {
  *   console.log(`Found ${response.data.meal_plans.length} meal plans`)
  * }
  * ```
  */
-export async function getProviderMealPlans(): Promise<
-  APIResponse<{ meal_plans: ApiProviderMealPlan[] }>
+export async function getCreatorMealPlans(): Promise<
+  APIResponse<{ meal_plans: ApiCreatorMealPlan[] }>
 > {
-  return await apiClient.get<{ meal_plans: ApiProviderMealPlan[] }>('/providers/meal-plans')
+  return await apiClient.get<{ meal_plans: ApiCreatorMealPlan[] }>('/creators/meal-plans')
 }
 
 /**
- * Creates a new meal plan for the provider
+ * Creates a new meal plan for the creator
  *
  * @param data - Meal plan creation data
  * @returns Promise containing the newly created meal plan
@@ -129,9 +139,9 @@ export async function getProviderMealPlans(): Promise<
  */
 export async function createMealPlan(
   data: CreateMealPlanData
-): Promise<APIResponse<{ meal_plan: ApiProviderMealPlan }>> {
-  return await apiClient.post<{ meal_plan: ApiProviderMealPlan }>(
-    '/providers/meal-plans',
+): Promise<APIResponse<{ meal_plan: ApiCreatorMealPlan }>> {
+  return await apiClient.post<{ meal_plan: ApiCreatorMealPlan }>(
+    '/creators/meal-plans',
     data
   )
 }
@@ -161,9 +171,9 @@ export async function createMealPlan(
 export async function updateMealPlan(
   id: string,
   data: UpdateMealPlanData
-): Promise<APIResponse<{ meal_plan: ApiProviderMealPlan }>> {
-  return await apiClient.patch<{ meal_plan: ApiProviderMealPlan }>(
-    `/providers/meal-plans/${id}`,
+): Promise<APIResponse<{ meal_plan: ApiCreatorMealPlan }>> {
+  return await apiClient.patch<{ meal_plan: ApiCreatorMealPlan }>(
+    `/creators/meal-plans/${id}`,
     data
   )
 }
@@ -188,49 +198,74 @@ export async function deleteMealPlan(
   id: string
 ): Promise<APIResponse<{ message: string; meal_plan_id: string }>> {
   return await apiClient.delete<{ message: string; meal_plan_id: string }>(
-    `/providers/meal-plans/${id}`
+    `/creators/meal-plans/${id}`
   )
 }
 
 /**
- * Updates the provider's profile
+ * Updates the creator's profile
  *
  * @param data - Profile update data
- * @returns Promise containing updated provider profile
+ * @returns Promise containing updated creator profile
  * @throws Error if validation fails or request fails
  *
  * @example
  * ```typescript
- * const response = await updateProviderProfile({
- *   business_name: 'Healthy Meal Co.',
+ * const response = await updateCreatorProfile({
+ *   creator_display_name: 'Healthy Meal Co.',
  *   bio: 'We create nutritious family-friendly meals'
  * })
  * ```
  */
-export async function updateProviderProfile(
-  data: UpdateProviderProfileRequest
-): Promise<APIResponse<{ provider: ApiProviderProfile }>> {
-  return await apiClient.patch<{ provider: ApiProviderProfile }>(
-    '/providers/profile',
+export async function updateCreatorProfile(
+  data: UpdateCreatorProfileRequest
+): Promise<APIResponse<{ creator: ApiCreatorProfile }>> {
+  return await apiClient.patch<{ creator: ApiCreatorProfile }>(
+    '/creators/profile',
     data
   )
 }
 
 /**
- * Fetches the provider's profile
+ * Fetches the creator's profile
  *
- * @returns Promise containing provider profile data
+ * @returns Promise containing creator profile data
  * @throws Error if the request fails
  *
  * @example
  * ```typescript
- * const response = await getProviderProfile()
+ * const response = await getCreatorProfile()
  * if (response.success && response.data) {
- *   console.log(response.data.business_name)
+ *   console.log(response.data.creator_display_name)
  *   console.log(response.data.total_earnings)
  * }
  * ```
  */
-export async function getProviderProfile(): Promise<APIResponse<ApiProviderProfile>> {
-  return await apiClient.get<ApiProviderProfile>('/providers/profile')
+export async function getCreatorProfile(): Promise<APIResponse<ApiCreatorProfile>> {
+  return await apiClient.get<ApiCreatorProfile>('/creators/profile')
+}
+
+/**
+ * Enables creator mode for the authenticated user
+ *
+ * @param data - Creator mode data (display name, bio, profile image)
+ * @returns Promise containing the created creator profile
+ * @throws Error if validation fails or user already is a creator
+ *
+ * @example
+ * ```typescript
+ * const response = await enableCreatorMode({
+ *   creator_display_name: 'Chef Jamie',
+ *   bio: 'Professional chef with 10 years of experience creating healthy, delicious meals for families.',
+ *   profile_image_url: 'https://example.com/avatar.jpg'
+ * })
+ * ```
+ */
+export async function enableCreatorMode(
+  data: EnableCreatorModeData
+): Promise<APIResponse<{ creator: ApiCreatorProfile; message: string }>> {
+  return await apiClient.post<{ creator: ApiCreatorProfile; message: string }>(
+    '/user/enable-creator-mode',
+    data
+  )
 }

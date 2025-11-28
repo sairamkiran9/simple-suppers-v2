@@ -3,49 +3,14 @@
  * Tests the Supabase database configuration and basic operations
  */
 
-// Check if Supabase is configured before importing
-const hasSupabaseConfig = Boolean(
-  process.env.NEXT_PUBLIC_SUPABASE_URL &&
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-)
+import { supabase, supabaseAdmin } from '../../lib/supabase'
+import { getMealPlans, getMealPlanById } from '../../lib/database-utils'
 
-// Only run these tests if Supabase is configured
-const describeIfConfigured = hasSupabaseConfig ? describe : describe.skip
-
-describeIfConfigured('Database Setup Validation', () => {
-  // Lazy load supabase modules only if configured
-  let supabase: any
-  let getMealPlans: any
-  let getUserById: any
-  let getMealPlanById: any
-
-  beforeAll(async () => {
-    if (!hasSupabaseConfig) {
-      console.log('⚠️  Skipping database tests - Supabase not configured')
-      return
-    }
-
-    try {
-      console.log('Loading Supabase module...')
-      // Import modules only when needed
-      const supabaseModule = await import('../../lib/supabase')
-      console.log('✓ Supabase module loaded')
-
-      console.log('Loading database utils...')
-      const dbUtilsModule = await import('../../lib/database-utils')
-      console.log('✓ Database utils loaded')
-
-      supabase = supabaseModule.supabase
-      getMealPlans = dbUtilsModule.getMealPlans
-      getUserById = dbUtilsModule.getUserById
-      getMealPlanById = dbUtilsModule.getMealPlanById
-
-      console.log('✓ Setup complete')
-    } catch (error) {
-      console.error('Failed to load database modules:', error)
-      throw error
-    }
-  }, 10000)
+describe('Database Setup Validation', () => {
+  beforeAll(() => {
+    console.log('✓ Database test environment configured')
+    console.log(`  Supabase URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL}`)
+  })
 
   describe('Environment Configuration', () => {
     it('should have the correct environment variables', () => {
@@ -95,7 +60,6 @@ describeIfConfigured('Database Setup Validation', () => {
   describe('Database Tables', () => {
     const requiredTables = [
       'users',
-      'meal_plan_providers',
       'meal_plans',
       'meal_plan_days',
       'meals',
@@ -141,7 +105,7 @@ describeIfConfigured('Database Setup Validation', () => {
       expect(accessibleTables.length).toBeGreaterThanOrEqual(3)
 
       // Core tables should be accessible
-      const coreTableNames = ['users', 'meal_plans', 'meal_plan_providers']
+      const coreTableNames = ['users', 'meal_plans']
       const accessibleTableNames = accessibleTables.map(t => t.table)
 
       for (const coreTable of coreTableNames) {
@@ -204,28 +168,29 @@ describeIfConfigured('Database Setup Validation', () => {
       }
     })
 
-    it('should check for sample providers', async () => {
+    it('should check for sample creators', async () => {
       try {
         const { data, error } = await supabase
-          .from('meal_plan_providers')
+          .from('users')
           .select('*')
+          .eq('is_creator', true)
           .eq('is_active', true)
 
         if (error) {
-          console.warn('Could not check for providers:', error.message)
+          console.warn('Could not check for creators:', error.message)
           expect(error).toBeDefined()
         } else {
-          console.log(`Found ${data?.length || 0} active providers`)
+          console.log(`Found ${data?.length || 0} active creators`)
           expect(data).toBeDefined()
 
           if (data && data.length > 0) {
-            console.log('✓ Sample providers found')
+            console.log('✓ Sample creators found')
           } else {
-            console.log('ℹ No active providers found (this is OK for fresh setup)')
+            console.log('ℹ No active creators found (this is OK for fresh setup)')
           }
         }
       } catch (err) {
-        console.warn('Providers check failed:', err)
+        console.warn('Creators check failed:', err)
         expect(err).toBeDefined()
       }
     })
@@ -269,7 +234,7 @@ describeIfConfigured('Database Setup Validation', () => {
         if (mealPlans.length > 0) {
           expect(mealPlans[0]).toHaveProperty('id')
           expect(mealPlans[0]).toHaveProperty('title')
-          expect(mealPlans[0]).toHaveProperty('provider')
+          expect(mealPlans[0]).toHaveProperty('creator')
           console.log(`✓ getMealPlans() returned ${mealPlans.length} meal plans`)
         } else {
           console.log('ℹ getMealPlans() returned empty array (OK for fresh setup)')
@@ -282,7 +247,6 @@ describeIfConfigured('Database Setup Validation', () => {
 
     it('should handle getMealPlanById function', async () => {
       try {
-        // First get a meal plan ID
         const mealPlans = await getMealPlans()
 
         if (mealPlans.length === 0) {
@@ -293,7 +257,7 @@ describeIfConfigured('Database Setup Validation', () => {
         const mealPlan = await getMealPlanById(mealPlans[0].id)
         expect(mealPlan).toBeDefined()
         expect(mealPlan).toHaveProperty('id')
-        expect(mealPlan).toHaveProperty('provider')
+        expect(mealPlan).toHaveProperty('creator')
         expect(mealPlan).toHaveProperty('meal_plan_days')
         console.log('✓ getMealPlanById() works correctly')
       } catch (err) {
@@ -325,20 +289,21 @@ describeIfConfigured('Database Setup Validation', () => {
       }
     })
 
-    it('should allow public access to active providers', async () => {
+    it('should allow public access to active creators', async () => {
       try {
         const { data, error } = await supabase
-          .from('meal_plan_providers')
+          .from('users')
           .select('*')
+          .eq('is_creator', true)
           .eq('is_active', true)
           .limit(1)
 
         if (error) {
-          console.warn('RLS test for providers failed:', error.message)
+          console.warn('RLS test for creators failed:', error.message)
           expect(error).toBeDefined()
         } else {
           expect(data).toBeDefined()
-          console.log('✓ Public access to providers works')
+          console.log('✓ Public access to creators works')
         }
       } catch (err) {
         console.warn('RLS test error:', err)
@@ -369,13 +334,13 @@ describeIfConfigured('Database Setup Validation', () => {
   })
 
   describe('Database Relationships', () => {
-    it('should test meal plan to provider relationship', async () => {
+    it('should test meal plan to creator relationship', async () => {
       try {
         const { data, error } = await supabase
           .from('meal_plans')
           .select(`
             *,
-            provider:meal_plan_providers(*)
+            creator:users!created_by_user_id(*)
           `)
           .eq('is_published', true)
           .limit(1)
@@ -385,8 +350,8 @@ describeIfConfigured('Database Setup Validation', () => {
           console.warn('Relationship test failed:', error.message)
           expect(error).toBeDefined()
         } else if (data) {
-          expect(data.provider).toBeDefined()
-          console.log('✓ Meal plan to provider relationship works')
+          expect(data.creator).toBeDefined()
+          console.log('✓ Meal plan to creator relationship works')
         } else {
           console.log('ℹ No published meal plans to test relationships')
         }

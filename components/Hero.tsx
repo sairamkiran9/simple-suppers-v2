@@ -31,7 +31,7 @@ export default function Hero({ onViewChange }: HeroProps) {
             </button>
             <button 
               className="btn btn--outline btn--lg hero-secondary-btn"
-              onClick={() => onViewChange('provider')}
+              onClick={() => onViewChange('feed')}
             >
               Join Community
             </button>

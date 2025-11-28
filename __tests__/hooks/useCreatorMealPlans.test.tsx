@@ -1,26 +1,26 @@
 /**
- * Tests for useProviderMealPlans hook
- * Manages provider meal plans data fetching and state
+ * Tests for useCreatorMealPlans hook
+ * Manages creator meal plans data fetching and state
  */
 
 import { renderHook, waitFor, act } from '@testing-library/react'
-import { useProviderMealPlans } from '@/hooks/useProviderMealPlans'
-import * as providerApi from '@/lib/api/provider'
+import { useCreatorMealPlans } from '@/hooks/useCreatorMealPlans'
+import * as creatorApi from '@/lib/api/creator'
 
-// Mock the provider API module
-jest.mock('@/lib/api/provider')
+// Mock the creator API module
+jest.mock('@/lib/api/creator')
 
-describe('useProviderMealPlans', () => {
+describe('useCreatorMealPlans', () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
   it('should initialize with loading state', () => {
-    ;(providerApi.getProviderMealPlans as jest.Mock).mockImplementation(
+    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockImplementation(
       () => new Promise(() => {}) // Never resolves
     )
 
-    const { result } = renderHook(() => useProviderMealPlans())
+    const { result } = renderHook(() => useCreatorMealPlans())
 
     expect(result.current.isLoading).toBe(true)
     expect(result.current.data).toBeNull()
@@ -59,9 +59,9 @@ describe('useProviderMealPlans', () => {
       },
     }
 
-    ;(providerApi.getProviderMealPlans as jest.Mock).mockResolvedValue(mockMealPlansData)
+    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockResolvedValue(mockMealPlansData)
 
-    const { result } = renderHook(() => useProviderMealPlans())
+    const { result } = renderHook(() => useCreatorMealPlans())
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -81,9 +81,9 @@ describe('useProviderMealPlans', () => {
       },
     }
 
-    ;(providerApi.getProviderMealPlans as jest.Mock).mockResolvedValue(mockEmptyData)
+    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockResolvedValue(mockEmptyData)
 
-    const { result } = renderHook(() => useProviderMealPlans())
+    const { result } = renderHook(() => useCreatorMealPlans())
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -96,9 +96,9 @@ describe('useProviderMealPlans', () => {
 
   it('should handle errors gracefully', async () => {
     const mockError = new Error('Failed to fetch meal plans')
-    ;(providerApi.getProviderMealPlans as jest.Mock).mockRejectedValue(mockError)
+    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockRejectedValue(mockError)
 
-    const { result } = renderHook(() => useProviderMealPlans())
+    const { result } = renderHook(() => useCreatorMealPlans())
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -127,16 +127,16 @@ describe('useProviderMealPlans', () => {
       },
     }
 
-    ;(providerApi.getProviderMealPlans as jest.Mock).mockResolvedValue(mockMealPlansData)
+    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockResolvedValue(mockMealPlansData)
 
-    const { result } = renderHook(() => useProviderMealPlans())
+    const { result } = renderHook(() => useCreatorMealPlans())
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
     })
 
     // Clear the mock to verify refetch calls it again
-    ;(providerApi.getProviderMealPlans as jest.Mock).mockClear()
+    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockClear()
 
     // Update mock data for refetch
     const updatedData = {
@@ -155,7 +155,7 @@ describe('useProviderMealPlans', () => {
         ],
       },
     }
-    ;(providerApi.getProviderMealPlans as jest.Mock).mockResolvedValue(updatedData)
+    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockResolvedValue(updatedData)
 
     // Trigger refetch
     act(() => {
@@ -163,7 +163,7 @@ describe('useProviderMealPlans', () => {
     })
 
     await waitFor(() => {
-      expect(providerApi.getProviderMealPlans).toHaveBeenCalledTimes(1)
+      expect(creatorApi.getCreatorMealPlans).toHaveBeenCalledTimes(1)
     })
 
     await waitFor(() => {
@@ -174,9 +174,9 @@ describe('useProviderMealPlans', () => {
 
   it('should handle network errors', async () => {
     const mockError = new Error('Network error')
-    ;(providerApi.getProviderMealPlans as jest.Mock).mockRejectedValue(mockError)
+    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockRejectedValue(mockError)
 
-    const { result } = renderHook(() => useProviderMealPlans())
+    const { result } = renderHook(() => useCreatorMealPlans())
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -186,17 +186,17 @@ describe('useProviderMealPlans', () => {
   })
 
   it('should not fetch if disabled', () => {
-    ;(providerApi.getProviderMealPlans as jest.Mock).mockResolvedValue({
+    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockResolvedValue({
       success: true,
       data: {
         meal_plans: [],
       },
     })
 
-    const { result } = renderHook(() => useProviderMealPlans({ enabled: false }))
+    const { result } = renderHook(() => useCreatorMealPlans({ enabled: false }))
 
     expect(result.current.isLoading).toBe(false)
     expect(result.current.data).toBeNull()
-    expect(providerApi.getProviderMealPlans).not.toHaveBeenCalled()
+    expect(creatorApi.getCreatorMealPlans).not.toHaveBeenCalled()
   })
 })

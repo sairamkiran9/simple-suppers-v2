@@ -27,7 +27,7 @@ describe('Navigation', () => {
     mockOnLoginClick.mockClear();
   });
 
-  it('renders the brand logo and nav texts', () => {
+  it('renders the brand logo and nav texts for non-authenticated users', () => {
     render(
       <Navigation
         currentView="landing"
@@ -38,7 +38,7 @@ describe('Navigation', () => {
 
     expect(screen.getByText('Simple Suppers')).toBeInTheDocument();
     expect(screen.getByText('Browse Plans')).toBeInTheDocument();
-    expect(screen.getByText('For Providers')).toBeInTheDocument();
+    expect(screen.getByText('Community')).toBeInTheDocument();
     expect(screen.getByText('Login')).toBeInTheDocument();
   });
 
@@ -86,7 +86,7 @@ describe('Navigation', () => {
   });
 
   it('handles all view types correctly', () => {
-    const views: ViewType[] = ['landing', 'browse', 'provider', 'dashboard'];
+    const views: ViewType[] = ['landing', 'browse', 'creator', 'dashboard', 'feed'];
 
     views.forEach(view => {
       render(

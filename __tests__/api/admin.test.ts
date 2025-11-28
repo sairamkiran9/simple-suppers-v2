@@ -170,34 +170,26 @@ describe('/api/admin/users', () => {
         email: 'provider1@example.com',
         name: 'Provider One',
         auth_provider: 'email',
-        user_type: 'provider',
+        user_type: 'user',
         subscription_tier: 'freemium',
         free_plans_used: 0,
         dietary_preferences: [],
         is_active: true,
         is_deleted: false,
+        is_creator: true,
+        creator_display_name: 'Test Business',
+        total_meal_plans_created: 5,
+        total_earnings: 100.00,
+        creator_rating: 4.5,
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z'
-      }
-    ]
-
-    const mockProviders = [
-      {
-        user_id: 'provider-1',
-        business_name: 'Test Business',
-        total_earnings: 100.00,
-        total_plans: 5,
-        average_rating: 4.5,
-        is_active: true
       }
     ]
 
     // Setup mock responses
     mockResponses = [
       // Users query with count
-      { data: mockUsers, error: null, count: 2 },
-      // Providers query
-      { data: mockProviders, error: null }
+      { data: mockUsers, error: null, count: 2 }
     ]
 
     const request = new NextRequest('http://localhost:3000/api/admin/users', {
@@ -214,10 +206,11 @@ describe('/api/admin/users', () => {
     expect(data.data.users).toHaveLength(2)
     expect(data.data.total).toBe(2)
 
-    // Check provider info is included
-    const providerUser = data.data.users.find((u: any) => u.user_type === 'provider')
-    expect(providerUser.provider_info).toBeDefined()
-    expect(providerUser.provider_info.business_name).toBe('Test Business')
+    // Check creator info is included
+    const creatorUser = data.data.users.find((u: any) => u.creator_info)
+    expect(creatorUser).toBeDefined()
+    expect(creatorUser.creator_info).toBeDefined()
+    expect(creatorUser.creator_info.creator_display_name).toBe('Test Business')
   })
 
   it('should filter users by type', async () => {
@@ -226,9 +219,7 @@ describe('/api/admin/users', () => {
     // Setup mock responses
     mockResponses = [
       // Filtered users query
-      { data: [], error: null, count: 0 },
-      // Empty providers query since no providers returned
-      { data: [], error: null }
+      { data: [], error: null, count: 0 }
     ]
 
     const request = new NextRequest('http://localhost:3000/api/admin/users?user_type=provider', {
@@ -251,9 +242,7 @@ describe('/api/admin/users', () => {
     // Setup mock responses
     mockResponses = [
       // Search results
-      { data: [], error: null, count: 0 },
-      // Empty providers query
-      { data: [], error: null }
+      { data: [], error: null, count: 0 }
     ]
 
     const request = new NextRequest('http://localhost:3000/api/admin/users?search=john', {

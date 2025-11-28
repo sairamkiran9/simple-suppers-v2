@@ -1,16 +1,16 @@
 /**
- * useProviderMealPlanActions Hook
+ * useCreatorMealPlanActions Hook
  *
- * Manages update and delete operations for provider meal plans
+ * Manages update and delete operations for creator meal plans
  * Handles loading states, error handling, and user feedback via toasts
  */
 
 import { useState, useCallback } from 'react'
-import { updateMealPlan, deleteMealPlan } from '@/lib/api/provider'
-import type { UpdateMealPlanData } from '@/lib/api/provider'
+import { updateMealPlan, deleteMealPlan } from '@/lib/api/creator'
+import type { UpdateMealPlanData } from '@/lib/api/creator'
 import { toast } from 'sonner'
 
-interface UseProviderMealPlanActionsReturn {
+interface UseCreatorMealPlanActionsReturn {
   updateMealPlan: (id: string, data: UpdateMealPlanData) => Promise<void>
   deleteMealPlan: (id: string) => Promise<void>
   isUpdating: boolean
@@ -19,13 +19,13 @@ interface UseProviderMealPlanActionsReturn {
 }
 
 /**
- * Hook for managing provider meal plan update and delete operations
+ * Hook for managing creator meal plan update and delete operations
  *
  * @returns Object containing action functions and their states
  *
  * @example
  * ```tsx
- * const { updateMealPlan, deleteMealPlan, isUpdating, isDeleting } = useProviderMealPlanActions()
+ * const { updateMealPlan, deleteMealPlan, isUpdating, isDeleting } = useCreatorMealPlanActions()
  *
  * const handlePublish = async (id: string) => {
  *   await updateMealPlan(id, { is_published: true })
@@ -40,7 +40,7 @@ interface UseProviderMealPlanActionsReturn {
  * }
  * ```
  */
-export function useProviderMealPlanActions(): UseProviderMealPlanActionsReturn {
+export function useCreatorMealPlanActions(): UseCreatorMealPlanActionsReturn {
   const [isUpdating, setIsUpdating] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)

@@ -54,7 +54,7 @@ describe('useMealPlanDetail', () => {
         provider: {
           id: 'provider-1',
           name: 'Test Provider',
-          business_name: 'Test Business',
+          creator_display_name: 'Test Business',
           rating: 4.8,
         },
         meal_plan_days: [

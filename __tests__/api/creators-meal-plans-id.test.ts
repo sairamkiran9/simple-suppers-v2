@@ -1,10 +1,10 @@
 import { NextRequest } from 'next/server'
-import { PATCH, DELETE } from '@/app/api/providers/meal-plans/[id]/route'
+import { PATCH, DELETE } from '@/app/api/creators/meal-plans/[id]/route'
 
 // Mock Supabase with dynamic configuration
 const mockSupabase = {
   mockResponses: {
-    meal_plan_providers: { data: null, error: null },
+    users: { data: null, error: null },
     meal_plans: { data: null, error: null },
     update: { data: null, error: null },
     lastUpdateData: {}
@@ -22,7 +22,7 @@ const mockSupabase = {
 
   reset: () => {
     mockSupabase.mockResponses = {
-      meal_plan_providers: { data: null, error: null },
+      users: { data: null, error: null },
       meal_plans: { data: null, error: null },
       update: { data: null, error: null },
       lastUpdateData: {}
@@ -84,13 +84,15 @@ jest.mock('@/lib/supabase', () => {
   }
 })
 
-// Mock provider authentication
+// Mock creator authentication
 const mockAuthUser = {
-  id: 'provider-user-id',
-  email: 'provider@example.com',
-  user_type: 'provider',
-  name: 'Test Provider',
-  subscription_tier: 'premium' as const
+  id: 'user-1',
+  email: 'creator@example.com',
+  user_type: 'user',
+  name: 'Test Creator',
+  subscription_tier: 'premium' as const,
+  is_creator: true,
+  total_meal_plans_created: 5
 }
 
 jest.mock('@/lib/api/auth', () => ({
@@ -136,34 +138,34 @@ jest.mock('@/lib/api/validation', () => {
 const { requireAuth } = require('@/lib/api/auth')
 const { supabase } = require('@/lib/supabase')
 
-describe('/api/providers/meal-plans/[id]', () => {
+describe('/api/creators/meal-plans/[id]', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockSupabase.reset()
 
-    // Reset auth mock to default provider user
+    // Reset auth mock to default creator user
     requireAuth.mockResolvedValue(mockAuthUser)
   })
 
   describe('PATCH', () => {
-    const mockProvider = {
-      id: 'provider-1',
-      user_id: 'provider-user-id',
-      total_plans: 5
+    const mockCreator = {
+      id: 'user-1',
+      is_creator: true,
+      total_meal_plans_created: 5
     }
 
     const mockExistingMealPlan = {
       id: 'plan-1',
-      provider_id: 'provider-1',
+      created_by_user_id: 'user-1',
       is_deleted: false,
       title: 'Original Title',
       description: 'Original Description'
     }
 
     it('should successfully update meal plan title', async () => {
-      // Mock provider profile
-      mockSupabase.setTableResponse('meal_plan_providers', {
-        data: mockProvider,
+      // Mock creator profile
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
         error: null
       })
 
@@ -183,10 +185,10 @@ describe('/api/providers/meal-plans/[id]', () => {
         error: null
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'PATCH',
         headers: {
-          'Authorization': 'Bearer provider-token',
+          'Authorization': 'Bearer creator-token',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ title: 'Updated Title' })
@@ -201,8 +203,8 @@ describe('/api/providers/meal-plans/[id]', () => {
     })
 
     it('should successfully update meal plan description', async () => {
-      mockSupabase.setTableResponse('meal_plan_providers', {
-        data: mockProvider,
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
         error: null
       })
 
@@ -220,10 +222,10 @@ describe('/api/providers/meal-plans/[id]', () => {
         error: null
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'PATCH',
         headers: {
-          'Authorization': 'Bearer provider-token',
+          'Authorization': 'Bearer creator-token',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ description: 'Updated Description' })
@@ -238,8 +240,8 @@ describe('/api/providers/meal-plans/[id]', () => {
     })
 
     it('should successfully update multiple fields', async () => {
-      mockSupabase.setTableResponse('meal_plan_providers', {
-        data: mockProvider,
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
         error: null
       })
 
@@ -261,10 +263,10 @@ describe('/api/providers/meal-plans/[id]', () => {
         error: null
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'PATCH',
         headers: {
-          'Authorization': 'Bearer provider-token',
+          'Authorization': 'Bearer creator-token',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -287,8 +289,8 @@ describe('/api/providers/meal-plans/[id]', () => {
     })
 
     it('should successfully publish meal plan (is_published = true)', async () => {
-      mockSupabase.setTableResponse('meal_plan_providers', {
-        data: mockProvider,
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
         error: null
       })
 
@@ -309,10 +311,10 @@ describe('/api/providers/meal-plans/[id]', () => {
         error: null
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'PATCH',
         headers: {
-          'Authorization': 'Bearer provider-token',
+          'Authorization': 'Bearer creator-token',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ is_published: true })
@@ -326,8 +328,8 @@ describe('/api/providers/meal-plans/[id]', () => {
     })
 
     it('should successfully deactivate meal plan (is_active = false)', async () => {
-      mockSupabase.setTableResponse('meal_plan_providers', {
-        data: mockProvider,
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
         error: null
       })
 
@@ -348,10 +350,10 @@ describe('/api/providers/meal-plans/[id]', () => {
         error: null
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'PATCH',
         headers: {
-          'Authorization': 'Bearer provider-token',
+          'Authorization': 'Bearer creator-token',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ is_active: false })
@@ -365,16 +367,16 @@ describe('/api/providers/meal-plans/[id]', () => {
     })
 
     it('should fail with 400 when no fields provided', async () => {
-      // Set up provider so we can reach validation
-      mockSupabase.setTableResponse('meal_plan_providers', {
-        data: mockProvider,
+      // Set up creator so we can reach validation
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
         error: null
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'PATCH',
         headers: {
-          'Authorization': 'Bearer provider-token',
+          'Authorization': 'Bearer creator-token',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({})
@@ -389,16 +391,16 @@ describe('/api/providers/meal-plans/[id]', () => {
     })
 
     it('should fail with 400 when validation fails (empty title)', async () => {
-      // Set up provider so we can reach validation
-      mockSupabase.setTableResponse('meal_plan_providers', {
-        data: mockProvider,
+      // Set up creator so we can reach validation
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
         error: null
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'PATCH',
         headers: {
-          'Authorization': 'Bearer provider-token',
+          'Authorization': 'Bearer creator-token',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ title: '' })
@@ -412,16 +414,16 @@ describe('/api/providers/meal-plans/[id]', () => {
     })
 
     it('should fail with 400 when validation fails (invalid difficulty_level)', async () => {
-      // Set up provider so we can reach validation
-      mockSupabase.setTableResponse('meal_plan_providers', {
-        data: mockProvider,
+      // Set up creator so we can reach validation
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
         error: null
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'PATCH',
         headers: {
-          'Authorization': 'Bearer provider-token',
+          'Authorization': 'Bearer creator-token',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ difficulty_level: 'expert' })
@@ -439,7 +441,7 @@ describe('/api/providers/meal-plans/[id]', () => {
       const { requireAuth } = require('@/lib/api/auth')
       requireAuth.mockRejectedValueOnce(new Error('Authentication required'))
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
@@ -454,14 +456,14 @@ describe('/api/providers/meal-plans/[id]', () => {
       expect(data.success).toBe(false)
     })
 
-    it('should fail with 403 when user is not a provider', async () => {
+    it('should fail with 403 when user is not a creator', async () => {
       // Mock user authentication
       requireAuth.mockResolvedValueOnce({
         ...mockAuthUser,
-        user_type: 'user'
+        is_creator: false
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'PATCH',
         headers: {
           'Authorization': 'Bearer user-token',
@@ -475,28 +477,28 @@ describe('/api/providers/meal-plans/[id]', () => {
 
       expect(response.status).toBe(403)
       expect(data.success).toBe(false)
-      expect(data.error.message).toContain('Only providers')
+      expect(data.error.message).toContain('Only creators')
     })
 
-    it('should fail with 403 when provider does not own the meal plan', async () => {
-      mockSupabase.setTableResponse('meal_plan_providers', {
-        data: mockProvider,
+    it('should fail with 403 when creator does not own the meal plan', async () => {
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
         error: null
       })
 
-      // Mock meal plan owned by different provider
+      // Mock meal plan owned by different creator
       mockSupabase.setTableResponse('meal_plans', {
         data: {
           ...mockExistingMealPlan,
-          provider_id: 'different-provider-id'
+          created_by_user_id: 'different-creator-id'
         },
         error: null
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'PATCH',
         headers: {
-          'Authorization': 'Bearer provider-token',
+          'Authorization': 'Bearer creator-token',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ title: 'Updated Title' })
@@ -511,8 +513,8 @@ describe('/api/providers/meal-plans/[id]', () => {
     })
 
     it('should fail with 404 when meal plan does not exist', async () => {
-      mockSupabase.setTableResponse('meal_plan_providers', {
-        data: mockProvider,
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
         error: null
       })
 
@@ -522,10 +524,10 @@ describe('/api/providers/meal-plans/[id]', () => {
         error: { message: 'Not found' }
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'PATCH',
         headers: {
-          'Authorization': 'Bearer provider-token',
+          'Authorization': 'Bearer creator-token',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ title: 'Updated Title' })
@@ -540,8 +542,8 @@ describe('/api/providers/meal-plans/[id]', () => {
     })
 
     it('should fail with 404 when meal plan is deleted', async () => {
-      mockSupabase.setTableResponse('meal_plan_providers', {
-        data: mockProvider,
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
         error: null
       })
 
@@ -554,10 +556,10 @@ describe('/api/providers/meal-plans/[id]', () => {
         error: null
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'PATCH',
         headers: {
-          'Authorization': 'Bearer provider-token',
+          'Authorization': 'Bearer creator-token',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ title: 'Updated Title' })
@@ -570,17 +572,17 @@ describe('/api/providers/meal-plans/[id]', () => {
       expect(data.success).toBe(false)
     })
 
-    it('should fail with 404 when provider profile not found', async () => {
-      // Mock provider not found
-      mockSupabase.setTableResponse('meal_plan_providers', {
+    it('should fail with 404 when meal plan not found (no creator check)', async () => {
+      // Mock meal plan not found (creator profile check not in API)
+      mockSupabase.setTableResponse('meal_plans', {
         data: null,
         error: { message: 'Not found' }
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'PATCH',
         headers: {
-          'Authorization': 'Bearer provider-token',
+          'Authorization': 'Bearer creator-token',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ title: 'Updated Title' })
@@ -591,43 +593,38 @@ describe('/api/providers/meal-plans/[id]', () => {
 
       expect(response.status).toBe(404)
       expect(data.success).toBe(false)
-      expect(data.error.message).toContain('Provider profile not found')
+      expect(data.error.message).toContain('Meal plan not found')
     })
   })
 
   describe('DELETE', () => {
-    const mockProvider = {
-      id: 'provider-1',
-      user_id: 'provider-user-id',
-      total_plans: 5
+    const mockCreator = {
+      id: 'user-1',
+      is_creator: true,
+      total_meal_plans_created: 5
     }
 
     const mockExistingMealPlan = {
       id: 'plan-1',
-      provider_id: 'provider-1',
+      created_by_user_id: 'user-1',
       is_deleted: false
     }
 
     it('should successfully soft delete meal plan', async () => {
-      mockSupabase.setTableResponse('meal_plan_providers', {
-        data: mockProvider,
-        error: null
-      })
-
       mockSupabase.setTableResponse('meal_plans', {
         data: mockExistingMealPlan,
         error: null
       })
 
       mockSupabase.setMockResponse('update', {
-        data: { ...mockExistingMealPlan, is_deleted: true },
+        data: null,
         error: null
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'DELETE',
         headers: {
-          'Authorization': 'Bearer provider-token'
+          'Authorization': 'Bearer creator-token'
         }
       })
 
@@ -641,29 +638,24 @@ describe('/api/providers/meal-plans/[id]', () => {
     })
 
     it('should verify is_deleted, is_active, and is_published are set correctly', async () => {
-      mockSupabase.setTableResponse('meal_plan_providers', {
-        data: mockProvider,
-        error: null
-      })
-
       mockSupabase.setTableResponse('meal_plans', {
         data: mockExistingMealPlan,
         error: null
       })
 
       mockSupabase.setMockResponse('update', {
-        data: { ...mockExistingMealPlan, is_deleted: true, is_active: false, is_published: false },
+        data: null,
         error: null
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'DELETE',
         headers: {
-          'Authorization': 'Bearer provider-token'
+          'Authorization': 'Bearer creator-token'
         }
       })
 
-      const response = await DELETE(request, { params: { id: 'plan-1' } })
+      await DELETE(request, { params: { id: 'plan-1' } })
 
       // Verify the update was called with correct data for meal_plans table
       expect(mockSupabase.mockResponses.lastUpdateData).toBeDefined()
@@ -677,7 +669,7 @@ describe('/api/providers/meal-plans/[id]', () => {
       const { requireAuth } = require('@/lib/api/auth')
       requireAuth.mockRejectedValueOnce(new Error('Authentication required'))
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'DELETE'
       })
 
@@ -688,13 +680,13 @@ describe('/api/providers/meal-plans/[id]', () => {
       expect(data.success).toBe(false)
     })
 
-    it('should fail with 403 when user is not a provider', async () => {
+    it('should fail with 403 when user is not a creator', async () => {
       requireAuth.mockResolvedValueOnce({
         ...mockAuthUser,
-        user_type: 'user'
+        is_creator: false
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'DELETE',
         headers: {
           'Authorization': 'Bearer user-token'
@@ -706,27 +698,22 @@ describe('/api/providers/meal-plans/[id]', () => {
 
       expect(response.status).toBe(403)
       expect(data.success).toBe(false)
-      expect(data.error.message).toContain('Only providers')
+      expect(data.error.message).toContain('Only creators')
     })
 
-    it('should fail with 403 when provider does not own the meal plan', async () => {
-      mockSupabase.setTableResponse('meal_plan_providers', {
-        data: mockProvider,
-        error: null
-      })
-
+    it('should fail with 403 when creator does not own the meal plan', async () => {
       mockSupabase.setTableResponse('meal_plans', {
         data: {
           ...mockExistingMealPlan,
-          provider_id: 'different-provider-id'
+          created_by_user_id: 'different-creator-id'
         },
         error: null
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'DELETE',
         headers: {
-          'Authorization': 'Bearer provider-token'
+          'Authorization': 'Bearer creator-token'
         }
       })
 
@@ -739,20 +726,15 @@ describe('/api/providers/meal-plans/[id]', () => {
     })
 
     it('should fail with 404 when meal plan does not exist', async () => {
-      mockSupabase.setTableResponse('meal_plan_providers', {
-        data: mockProvider,
-        error: null
-      })
-
       mockSupabase.setTableResponse('meal_plans', {
         data: null,
         error: { message: 'Not found' }
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'DELETE',
         headers: {
-          'Authorization': 'Bearer provider-token'
+          'Authorization': 'Bearer creator-token'
         }
       })
 
@@ -765,11 +747,6 @@ describe('/api/providers/meal-plans/[id]', () => {
     })
 
     it('should fail with 409 when meal plan is already deleted', async () => {
-      mockSupabase.setTableResponse('meal_plan_providers', {
-        data: mockProvider,
-        error: null
-      })
-
       mockSupabase.setTableResponse('meal_plans', {
         data: {
           ...mockExistingMealPlan,
@@ -778,10 +755,10 @@ describe('/api/providers/meal-plans/[id]', () => {
         error: null
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'DELETE',
         headers: {
-          'Authorization': 'Bearer provider-token'
+          'Authorization': 'Bearer creator-token'
         }
       })
 
@@ -793,16 +770,16 @@ describe('/api/providers/meal-plans/[id]', () => {
       expect(data.error.message).toContain('already deleted')
     })
 
-    it('should fail with 404 when provider profile not found', async () => {
-      mockSupabase.setTableResponse('meal_plan_providers', {
+    it('should fail with 404 when meal plan not found (no creator check)', async () => {
+      mockSupabase.setTableResponse('meal_plans', {
         data: null,
         error: { message: 'Not found' }
       })
 
-      const request = new NextRequest('http://localhost/api/providers/meal-plans/plan-1', {
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
         method: 'DELETE',
         headers: {
-          'Authorization': 'Bearer provider-token'
+          'Authorization': 'Bearer creator-token'
         }
       })
 
@@ -811,7 +788,7 @@ describe('/api/providers/meal-plans/[id]', () => {
 
       expect(response.status).toBe(404)
       expect(data.success).toBe(false)
-      expect(data.error.message).toContain('Provider profile not found')
+      expect(data.error.message).toContain('Meal plan not found')
     })
   })
 })

@@ -39,13 +39,10 @@ export async function POST(request: NextRequest) {
       return ErrorResponses.payment('Payment verification failed')
     }
 
-    // Get meal plan and provider details
+    // Get meal plan details
     const { data: mealPlan, error: planError } = await supabaseAdmin
       .from('meal_plans')
-      .select(`
-        *,
-        provider:meal_plan_providers(*)
-      `)
+      .select('*')
       .eq('id', meal_plan_id)
       .single()
 
@@ -64,9 +61,9 @@ export async function POST(request: NextRequest) {
     const purchase = await createPurchase({
       user_id: user.id,
       meal_plan_id: meal_plan_id,
-      provider_id: mealPlan.provider_id || undefined,
+      creator_user_id: mealPlan.created_by_user_id || undefined,
       purchase_price: totalAmount,
-      provider_earnings: centsToDollars(providerEarnings),
+      creator_earnings: centsToDollars(providerEarnings),
       platform_fee: centsToDollars(platformFee),
       stripe_payment_intent_id: payment_intent_id,
       status: 'completed',
@@ -80,10 +77,10 @@ export async function POST(request: NextRequest) {
       event_type: 'purchase',
       user_id: user.id,
       meal_plan_id: meal_plan_id,
-      provider_id: mealPlan.provider_id || undefined,
+      creator_user_id: mealPlan.created_by_user_id || undefined,
       metadata: {
         purchase_price: totalAmount,
-        provider_earnings: centsToDollars(providerEarnings),
+        creator_earnings: centsToDollars(providerEarnings),
         payment_intent_id: payment_intent_id
       }
     })

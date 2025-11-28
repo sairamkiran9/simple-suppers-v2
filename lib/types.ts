@@ -29,7 +29,7 @@ export interface Provider {
   earnings: string;
 }
 
-export type ViewType = 'landing' | 'browse' | 'detail' | 'provider' | 'dashboard' | 'login' | 'signup' | 'feed';
+export type ViewType = 'landing' | 'browse' | 'detail' | 'creator' | 'dashboard' | 'login' | 'signup' | 'feed';
 
 export interface AppData {
   sampleMealPlans: MealPlan[];

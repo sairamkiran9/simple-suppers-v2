@@ -112,13 +112,15 @@ export async function GET(request: NextRequest, { params }: { params: Params }) 
         dietary_tags: mealPlan.dietary_tags,
         difficulty_level: mealPlan.difficulty_level,
         is_free: mealPlan.is_free,
-        provider: {
-          id: mealPlan.provider.id,
-          name: mealPlan.provider.business_name,
-          business_name: mealPlan.provider.business_name,
-          bio: mealPlan.provider.bio,
-          profile_image_url: mealPlan.provider.profile_image_url,
-          rating: mealPlan.provider.average_rating
+        creator: {
+          id: mealPlan.creator.id,
+          name: mealPlan.creator.creator_display_name || mealPlan.creator.name,
+          display_name: mealPlan.creator.creator_display_name,
+          bio: mealPlan.creator.creator_bio,
+          profile_image_url: mealPlan.creator.creator_profile_image_url,
+          rating: mealPlan.creator.creator_rating,
+          is_verified: mealPlan.creator.is_verified,
+          tier: mealPlan.creator.creator_tier
         },
         meal_plan_days: previewDays,
         user_has_subscribed: user ? !!userPurchaseId : undefined,
@@ -158,13 +160,15 @@ export async function GET(request: NextRequest, { params }: { params: Params }) 
       dietary_tags: mealPlan.dietary_tags,
       difficulty_level: mealPlan.difficulty_level,
       is_free: mealPlan.is_free,
-      provider: {
-        id: mealPlan.provider.id,
-        name: mealPlan.provider.business_name,
-        business_name: mealPlan.provider.business_name,
-        bio: mealPlan.provider.bio,
-        profile_image_url: mealPlan.provider.profile_image_url,
-        rating: mealPlan.provider.average_rating
+      creator: {
+        id: mealPlan.creator.id,
+        name: mealPlan.creator.creator_display_name || mealPlan.creator.name,
+        display_name: mealPlan.creator.creator_display_name,
+        bio: mealPlan.creator.creator_bio,
+        profile_image_url: mealPlan.creator.creator_profile_image_url,
+        rating: mealPlan.creator.creator_rating,
+        is_verified: mealPlan.creator.is_verified,
+        tier: mealPlan.creator.creator_tier
       },
       meal_plan_days: fullDays,
       user_has_subscribed: user ? !!userPurchaseId : undefined,

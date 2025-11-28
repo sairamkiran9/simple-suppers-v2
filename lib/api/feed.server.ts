@@ -30,15 +30,15 @@ export async function getFeedPosts(
       ...post,
       author: {
         id: post.author_id,
-        name: 'Sample Provider',
-        email: 'provider@example.com',
-        user_type: 'provider' as const
-      },
-      provider: {
-        id: 'sample-provider-id',
-        business_name: 'Sample Kitchen',
-        profile_image_url: null,
-        bio: 'Delicious meals for everyone'
+        name: 'Sample Creator',
+        email: 'creator@example.com',
+        user_type: 'user' as const,
+        is_creator: true,
+        creator_display_name: 'Sample Kitchen',
+        creator_profile_image_url: null,
+        creator_bio: 'Delicious meals for everyone',
+        is_verified: false,
+        creator_tier: null
       },
       meal_plan: undefined,
       user_has_liked: false,
@@ -225,19 +225,21 @@ export async function toggleProviderFollow(providerId: string): Promise<{ follow
 // Get trending providers
 export async function getTrendingProviders(limit = 10) {
   const { data, error } = await supabaseAdmin
-    .from('meal_plan_providers')
+    .from('users')
     .select(`
       id,
-      business_name,
-      profile_image_url,
-      bio,
-      total_plans,
-      average_rating,
+      name,
+      creator_display_name,
+      creator_profile_image_url,
+      creator_bio,
+      total_meal_plans_created,
+      creator_rating,
       follower_count:feed_follows(count)
     `)
+    .eq('is_creator', true)
     .eq('is_active', true)
     .eq('is_deleted', false)
-    .order('total_plans', { ascending: false })
+    .order('total_meal_plans_created', { ascending: false })
     .limit(limit)
 
   if (error) throw error

@@ -4,6 +4,12 @@ import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 
+/**
+ * GET /api/creators/dashboard
+ * Get creator dashboard data including analytics, recent purchases, and top performing plans
+ *
+ * Authentication: Required (Creator only)
+ */
 export async function GET(request: NextRequest) {
   try {
     // Require authentication
@@ -12,23 +18,12 @@ export async function GET(request: NextRequest) {
     // Apply rate limiting
     withRateLimit(request, user.id, user.user_type)
 
-    // Check if user is a provider
-    if (user.user_type !== 'provider') {
-      return ErrorResponses.forbidden('Only providers can access this endpoint')
+    // Check if user is a creator
+    if (!user.is_creator) {
+      return ErrorResponses.forbidden('Only creators can access this endpoint')
     }
 
-    // Get provider profile
-    const { data: provider } = await supabaseAdmin
-      .from('meal_plan_providers')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-
-    if (!provider) {
-      return ErrorResponses.notFound('Provider profile')
-    }
-
-    // Get provider's meal plans
+    // Get creator's meal plans
     const { data: mealPlans } = await supabaseAdmin
       .from('meal_plans')
       .select(`
@@ -42,7 +37,7 @@ export async function GET(request: NextRequest) {
         final_price,
         created_at
       `)
-      .eq('provider_id', provider.id)
+      .eq('created_by_user_id', user.id)
       .eq('is_deleted', false)
       .order('created_at', { ascending: false })
 
@@ -52,13 +47,13 @@ export async function GET(request: NextRequest) {
       .select(`
         id,
         purchase_price,
-        provider_earnings,
+        creator_earnings,
         purchased_at,
         status,
         meal_plan:meal_plans(title),
         user:users(name, email)
       `)
-      .eq('provider_id', provider.id)
+      .eq('creator_user_id', user.id)
       .eq('status', 'completed')
       .order('purchased_at', { ascending: false })
       .limit(10)
@@ -77,12 +72,12 @@ export async function GET(request: NextRequest) {
 
     const { data: monthlyEarnings } = await supabaseAdmin
       .from('user_plan_purchases')
-      .select('provider_earnings')
-      .eq('provider_id', provider.id)
+      .select('creator_earnings')
+      .eq('creator_user_id', user.id)
       .eq('status', 'completed')
       .gte('purchased_at', currentMonth.toISOString())
 
-    const currentMonthEarnings = monthlyEarnings?.reduce((sum, purchase) => sum + purchase.provider_earnings, 0) || 0
+    const currentMonthEarnings = monthlyEarnings?.reduce((sum, purchase) => sum + (purchase.creator_earnings || 0), 0) || 0
 
     // Get top performing meal plans
     const topPlans = mealPlans
@@ -99,16 +94,17 @@ export async function GET(request: NextRequest) {
       })) || []
 
     return SuccessResponses.ok({
-      provider: {
-        id: provider.id,
-        business_name: provider.business_name,
-        bio: provider.bio,
-        profile_image_url: provider.profile_image_url,
-        email_verified: provider.email_verified,
-        is_active: provider.is_active,
-        total_earnings: provider.total_earnings,
-        total_plans: provider.total_plans,
-        average_rating: provider.average_rating
+      creator: {
+        id: user.id,
+        name: user.name,
+        creator_display_name: user.creator_display_name,
+        creator_bio: user.creator_bio,
+        creator_profile_image_url: user.creator_profile_image_url,
+        creator_email_verified: user.creator_email_verified,
+        is_active: user.is_active,
+        total_earnings: user.total_earnings,
+        total_plans: user.total_meal_plans_created,
+        creator_rating: user.creator_rating
       },
       analytics: {
         total_meal_plans: totalMealPlans,
@@ -117,7 +113,7 @@ export async function GET(request: NextRequest) {
         total_views: totalViews,
         total_sales: totalSales,
         current_month_earnings: currentMonthEarnings,
-        all_time_earnings: provider.total_earnings
+        all_time_earnings: user.total_earnings || 0
       },
       recent_purchases: (recentPurchases || []).map((purchase: any) => ({
         id: purchase.id,
@@ -125,7 +121,7 @@ export async function GET(request: NextRequest) {
         customer_name: purchase.user?.name || 'Unknown Customer',
         customer_email: purchase.user?.email || 'Unknown Email',
         purchase_price: purchase.purchase_price,
-        provider_earnings: purchase.provider_earnings,
+        creator_earnings: purchase.creator_earnings,
         purchased_at: purchase.purchased_at,
         status: purchase.status
       })),

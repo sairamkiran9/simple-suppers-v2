@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       .select(`
         id,
         title,
-        provider:meal_plan_providers(business_name)
+        creator:users!created_by_user_id(id, name, creator_display_name)
       `)
       .eq('is_free', true)
       .eq('is_active', true)
@@ -36,13 +36,13 @@ export async function GET(request: NextRequest) {
 
     // Transform purchased plans for response
     const purchasedPlans = purchases
-      .filter((purchase): purchase is typeof purchase & { meal_plan: NonNullable<typeof purchase.meal_plan>, provider: NonNullable<typeof purchase.provider> } =>
-        purchase?.meal_plan !== null && purchase?.provider !== null
+      .filter((purchase): purchase is typeof purchase & { meal_plan: NonNullable<typeof purchase.meal_plan>, creator: NonNullable<typeof purchase.creator> } =>
+        purchase?.meal_plan !== null && purchase?.creator !== null
       )
       .map(purchase => ({
         id: purchase.id, // This is the purchase ID, needed for unsubscribe functionality
         title: purchase.meal_plan.title,
-        provider_name: purchase.provider.business_name,
+        provider_name: purchase.creator.creator_display_name || purchase.creator.name,
         purchase_date: purchase.purchased_at,
         purchased_at: purchase.purchased_at,
         expires_at: purchase.expires_at,
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     const freePhansData = (freePlans || []).map((plan: any) => ({
       id: plan.id,
       title: plan.title,
-      provider_name: plan.provider?.business_name || 'Unknown Provider'
+      provider_name: plan.creator?.creator_display_name || plan.creator?.name || 'Unknown Creator'
     }))
 
     // Calculate overview statistics

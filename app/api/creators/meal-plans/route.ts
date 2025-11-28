@@ -1,10 +1,20 @@
 import { NextRequest } from 'next/server'
-import { CreateMealPlanSchema, validateBody, ProviderMealPlansQuerySchema, validateQuery } from '@/lib/api/validation'
+import { CreateMealPlanSchema, validateBody, CreatorMealPlansQuerySchema, validateQuery } from '@/lib/api/validation'
 import { handleAPIError, SuccessResponses, ErrorResponses } from '@/lib/api/errors'
 import { withRateLimit } from '@/lib/api/rate-limit'
 import { requireAuth } from '@/lib/api/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 
+/**
+ * GET /api/creators/meal-plans
+ * Get meal plans created by the authenticated creator
+ *
+ * Authentication: Required (Creator only)
+ * Query Parameters:
+ *   - status: 'all' | 'published' | 'draft' | 'inactive'
+ *   - limit: number (1-100, default 20)
+ *   - offset: number (default 0)
+ */
 export async function GET(request: NextRequest) {
   try {
     // Require authentication
@@ -13,25 +23,14 @@ export async function GET(request: NextRequest) {
     // Apply rate limiting
     withRateLimit(request, user.id, user.user_type)
 
-    // Check if user is a provider
-    if (user.user_type !== 'provider') {
-      return ErrorResponses.forbidden('Only providers can access this endpoint')
-    }
-
-    // Get provider profile
-    const { data: provider } = await supabaseAdmin
-      .from('meal_plan_providers')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (!provider) {
-      return ErrorResponses.notFound('Provider profile')
+    // Check if user is a creator
+    if (!user.is_creator) {
+      return ErrorResponses.forbidden('Only creators can access this endpoint')
     }
 
     // Parse and validate query parameters
     const { searchParams } = new URL(request.url)
-    const validation = validateQuery(ProviderMealPlansQuerySchema, searchParams)
+    const validation = validateQuery(CreatorMealPlansQuerySchema, searchParams)
 
     if (!validation.success) {
       return ErrorResponses.validation(validation.error)
@@ -64,7 +63,7 @@ export async function GET(request: NextRequest) {
         created_at,
         updated_at
       `, { count: 'exact' })
-      .eq('provider_id', provider.id)
+      .eq('created_by_user_id', user.id)
       .eq('is_deleted', false)
 
     // Apply status filter
@@ -95,6 +94,12 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * POST /api/creators/meal-plans
+ * Create a new meal plan
+ *
+ * Authentication: Required (Creator only)
+ */
 export async function POST(request: NextRequest) {
   try {
     // Require authentication
@@ -103,20 +108,9 @@ export async function POST(request: NextRequest) {
     // Apply rate limiting
     withRateLimit(request, user.id, user.user_type)
 
-    // Check if user is a provider
-    if (user.user_type !== 'provider') {
-      return ErrorResponses.forbidden('Only providers can access this endpoint')
-    }
-
-    // Get provider profile
-    const { data: provider } = await supabaseAdmin
-      .from('meal_plan_providers')
-      .select('id, total_plans')
-      .eq('user_id', user.id)
-      .single()
-
-    if (!provider) {
-      return ErrorResponses.notFound('Provider profile')
+    // Check if user is a creator
+    if (!user.is_creator) {
+      return ErrorResponses.forbidden('Only creators can create meal plans')
     }
 
     // Parse and validate request body
@@ -147,7 +141,7 @@ export async function POST(request: NextRequest) {
     const { data: mealPlan, error: mealPlanError } = await supabaseAdmin
       .from('meal_plans')
       .insert({
-        provider_id: provider.id,
+        created_by_user_id: user.id,
         title,
         description,
         duration_days,
@@ -214,13 +208,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Update provider total_plans count
+    // Update creator total_meal_plans_created count
     await supabaseAdmin
-      .from('meal_plan_providers')
+      .from('users')
       .update({
-        total_plans: (provider.total_plans || 0) + 1
-      })
-      .eq('id', provider.id)
+        total_meal_plans_created: (user.total_meal_plans_created || 0) + 1
+      } as any)
+      .eq('id', user.id)
 
     return SuccessResponses.created({
       meal_plan: {

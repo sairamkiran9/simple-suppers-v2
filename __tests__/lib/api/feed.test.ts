@@ -72,7 +72,7 @@ describe('Feed API Client', () => {
       const result = await getFeedPosts(0, 10)
 
       expect(result.posts).toHaveLength(1)
-      expect(result.posts[0].author.name).toBe('Sample Provider')
+      expect(result.posts[0].author.name).toBe('Sample Creator')
       expect(mockChain.eq).toHaveBeenCalledWith('is_active', true)
       expect(mockChain.eq).toHaveBeenCalledWith('is_deleted', false)
       expect(mockChain.range).toHaveBeenCalledWith(0, 10)
@@ -302,28 +302,29 @@ describe('Feed API Client', () => {
   })
 
   describe('getTrendingProviders', () => {
-    it('should fetch trending providers', async () => {
+    it('should fetch trending creators', async () => {
       const { supabaseAdmin } = require('@/lib/supabase')
       const mockChain = createChainableMock()
-      
+
       mockChain.limit.mockResolvedValue({
         data: [
           {
-            id: 'provider-1',
-            business_name: 'Test Kitchen',
-            total_plans: 10,
-            average_rating: 4.5
+            id: 'creator-1',
+            name: 'Test User',
+            creator_display_name: 'Test Kitchen',
+            total_meal_plans_created: 10,
+            creator_rating: 4.5
           }
         ],
         error: null
       })
-      
+
       supabaseAdmin.from.mockReturnValue(mockChain)
 
       const result = await getTrendingProviders(5)
 
       expect(result).toHaveLength(1)
-      expect(result[0].business_name).toBe('Test Kitchen')
+      expect(result[0].creator_display_name).toBe('Test Kitchen')
       expect(mockChain.limit).toHaveBeenCalledWith(5)
     })
   })

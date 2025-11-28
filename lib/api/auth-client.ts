@@ -28,6 +28,7 @@ export interface AuthUser {
   name: string
   user_type: 'user' | 'provider'
   subscription_tier: string
+  is_creator?: boolean
 }
 
 export interface AuthResponse {

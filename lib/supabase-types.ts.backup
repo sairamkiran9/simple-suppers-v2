@@ -209,19 +209,19 @@ export type Database = {
         Row: {
           created_at: string | null
           follower_user_id: string
-          following_user_id: string | null
+          following_provider_id: string
           id: string
         }
         Insert: {
           created_at?: string | null
           follower_user_id: string
-          following_user_id?: string | null
+          following_provider_id: string
           id?: string
         }
         Update: {
           created_at?: string | null
           follower_user_id?: string
-          following_user_id?: string | null
+          following_provider_id?: string
           id?: string
         }
         Relationships: [
@@ -233,10 +233,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "feed_follows_following_user_id_fkey"
-            columns: ["following_user_id"]
+            foreignKeyName: "feed_follows_following_provider_id_fkey"
+            columns: ["following_provider_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "meal_plan_providers"
             referencedColumns: ["id"]
           },
         ]
@@ -280,6 +280,7 @@ export type Database = {
       feed_posts: {
         Row: {
           author_id: string
+          author_type: string
           comments_count: number | null
           content: string
           created_at: string | null
@@ -301,6 +302,7 @@ export type Database = {
         }
         Insert: {
           author_id: string
+          author_type: string
           comments_count?: number | null
           content: string
           created_at?: string | null
@@ -322,6 +324,7 @@ export type Database = {
         }
         Update: {
           author_id?: string
+          author_type?: string
           comments_count?: number | null
           content?: string
           created_at?: string | null
@@ -429,6 +432,62 @@ export type Database = {
           },
         ]
       }
+      meal_plan_providers: {
+        Row: {
+          average_rating: number | null
+          bio: string | null
+          business_name: string
+          created_at: string | null
+          email_verified: boolean | null
+          id: string
+          is_active: boolean | null
+          is_deleted: boolean | null
+          profile_image_url: string | null
+          total_earnings: number | null
+          total_plans: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          average_rating?: number | null
+          bio?: string | null
+          business_name: string
+          created_at?: string | null
+          email_verified?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          is_deleted?: boolean | null
+          profile_image_url?: string | null
+          total_earnings?: number | null
+          total_plans?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          average_rating?: number | null
+          bio?: string | null
+          business_name?: string
+          created_at?: string | null
+          email_verified?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          is_deleted?: boolean | null
+          profile_image_url?: string | null
+          total_earnings?: number | null
+          total_plans?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_plan_providers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meal_plan_reviews: {
         Row: {
           created_at: string | null
@@ -498,10 +557,6 @@ export type Database = {
           average_rating: number | null
           category: string | null
           created_at: string | null
-          created_by_user_id: string | null
-          creator_avatar_url: string | null
-          creator_bio: string | null
-          creator_name: string | null
           description: string
           dietary_tags: string[] | null
           difficulty_level: string | null
@@ -514,6 +569,7 @@ export type Database = {
           is_featured: boolean | null
           is_free: boolean | null
           is_published: boolean | null
+          provider_id: string | null
           rating_count: number | null
           suggested_price: number
           title: string
@@ -525,10 +581,6 @@ export type Database = {
           average_rating?: number | null
           category?: string | null
           created_at?: string | null
-          created_by_user_id?: string | null
-          creator_avatar_url?: string | null
-          creator_bio?: string | null
-          creator_name?: string | null
           description: string
           dietary_tags?: string[] | null
           difficulty_level?: string | null
@@ -541,6 +593,7 @@ export type Database = {
           is_featured?: boolean | null
           is_free?: boolean | null
           is_published?: boolean | null
+          provider_id?: string | null
           rating_count?: number | null
           suggested_price: number
           title: string
@@ -552,10 +605,6 @@ export type Database = {
           average_rating?: number | null
           category?: string | null
           created_at?: string | null
-          created_by_user_id?: string | null
-          creator_avatar_url?: string | null
-          creator_bio?: string | null
-          creator_name?: string | null
           description?: string
           dietary_tags?: string[] | null
           difficulty_level?: string | null
@@ -568,6 +617,7 @@ export type Database = {
           is_featured?: boolean | null
           is_free?: boolean | null
           is_published?: boolean | null
+          provider_id?: string | null
           rating_count?: number | null
           suggested_price?: number
           title?: string
@@ -577,10 +627,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "meal_plans_created_by_user_id_fkey"
-            columns: ["created_by_user_id"]
+            foreignKeyName: "meal_plans_provider_id_fkey"
+            columns: ["provider_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "meal_plan_providers"
             referencedColumns: ["id"]
           },
         ]
@@ -644,53 +694,53 @@ export type Database = {
       platform_analytics: {
         Row: {
           created_at: string | null
-          creator_user_id: string | null
           event_type: string
           id: string
           ip_address: unknown
           meal_plan_id: string | null
           metadata: Json | null
+          provider_id: string | null
           session_id: string | null
           user_agent: string | null
           user_id: string | null
         }
         Insert: {
           created_at?: string | null
-          creator_user_id?: string | null
           event_type: string
           id?: string
           ip_address?: unknown
           meal_plan_id?: string | null
           metadata?: Json | null
+          provider_id?: string | null
           session_id?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
         Update: {
           created_at?: string | null
-          creator_user_id?: string | null
           event_type?: string
           id?: string
           ip_address?: unknown
           meal_plan_id?: string | null
           metadata?: Json | null
+          provider_id?: string | null
           session_id?: string | null
           user_agent?: string | null
           user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "platform_analytics_creator_user_id_fkey"
-            columns: ["creator_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "platform_analytics_meal_plan_id_fkey"
             columns: ["meal_plan_id"]
             isOneToOne: false
             referencedRelation: "meal_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_analytics_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "meal_plan_providers"
             referencedColumns: ["id"]
           },
           {
@@ -760,13 +810,13 @@ export type Database = {
       user_plan_purchases: {
         Row: {
           created_at: string | null
-          creator_earnings: number | null
-          creator_user_id: string | null
           expires_at: string | null
           id: string
           is_active: boolean | null
           meal_plan_id: string | null
           platform_fee: number
+          provider_earnings: number
+          provider_id: string | null
           purchase_price: number
           purchased_at: string | null
           status: string | null
@@ -775,13 +825,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          creator_earnings?: number | null
-          creator_user_id?: string | null
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
           meal_plan_id?: string | null
           platform_fee: number
+          provider_earnings: number
+          provider_id?: string | null
           purchase_price: number
           purchased_at?: string | null
           status?: string | null
@@ -790,13 +840,13 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          creator_earnings?: number | null
-          creator_user_id?: string | null
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
           meal_plan_id?: string | null
           platform_fee?: number
+          provider_earnings?: number
+          provider_id?: string | null
           purchase_price?: number
           purchased_at?: string | null
           status?: string | null
@@ -805,17 +855,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "user_plan_purchases_creator_user_id_fkey"
-            columns: ["creator_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "user_plan_purchases_meal_plan_id_fkey"
             columns: ["meal_plan_id"]
             isOneToOne: false
             referencedRelation: "meal_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_plan_purchases_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "meal_plan_providers"
             referencedColumns: ["id"]
           },
           {
@@ -831,78 +881,45 @@ export type Database = {
         Row: {
           auth_provider: string | null
           created_at: string | null
-          creator_bio: string | null
-          creator_display_name: string | null
-          creator_email_verified: boolean | null
-          creator_profile_image_url: string | null
-          creator_rating: number | null
-          creator_tier: string | null
           dietary_preferences: string[] | null
           email: string
           free_plans_used: number | null
           id: string
           is_active: boolean | null
-          is_creator: boolean | null
           is_deleted: boolean | null
-          is_verified: boolean | null
           name: string
           password_hash: string | null
-          social_media_links: Json | null
           subscription_tier: string | null
-          total_earnings: number | null
-          total_meal_plans_created: number | null
           updated_at: string | null
           user_type: string | null
         }
         Insert: {
           auth_provider?: string | null
           created_at?: string | null
-          creator_bio?: string | null
-          creator_display_name?: string | null
-          creator_email_verified?: boolean | null
-          creator_profile_image_url?: string | null
-          creator_rating?: number | null
-          creator_tier?: string | null
           dietary_preferences?: string[] | null
           email: string
           free_plans_used?: number | null
           id?: string
           is_active?: boolean | null
-          is_creator?: boolean | null
           is_deleted?: boolean | null
-          is_verified?: boolean | null
           name: string
           password_hash?: string | null
-          social_media_links?: Json | null
           subscription_tier?: string | null
-          total_earnings?: number | null
-          total_meal_plans_created?: number | null
           updated_at?: string | null
           user_type?: string | null
         }
         Update: {
           auth_provider?: string | null
           created_at?: string | null
-          creator_bio?: string | null
-          creator_display_name?: string | null
-          creator_email_verified?: boolean | null
-          creator_profile_image_url?: string | null
-          creator_rating?: number | null
-          creator_tier?: string | null
           dietary_preferences?: string[] | null
           email?: string
           free_plans_used?: number | null
           id?: string
           is_active?: boolean | null
-          is_creator?: boolean | null
           is_deleted?: boolean | null
-          is_verified?: boolean | null
           name?: string
           password_hash?: string | null
-          social_media_links?: Json | null
           subscription_tier?: string | null
-          total_earnings?: number | null
-          total_meal_plans_created?: number | null
           updated_at?: string | null
           user_type?: string | null
         }

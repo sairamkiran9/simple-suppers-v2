@@ -14,27 +14,29 @@ export interface User {
   is_deleted: boolean
   created_at: string
   updated_at: string
+  // Creator fields
+  is_creator: boolean
+  creator_display_name?: string
+  creator_bio?: string
+  creator_profile_image_url?: string
+  total_meal_plans_created: number
+  total_earnings: number
+  creator_rating: number
+  creator_email_verified: boolean
+  // Enhanced creator fields
+  is_verified: boolean
+  creator_tier?: 'bronze' | 'silver' | 'gold' | null
+  social_media_links?: Record<string, string> // JSONB
 }
 
-export interface MealPlanProvider {
-  id: string
-  user_id: string
-  business_name: string
-  bio?: string
-  profile_image_url?: string
-  email_verified: boolean
-  is_active: boolean
-  is_deleted: boolean
-  total_earnings: number
-  total_plans: number
-  average_rating: number
-  created_at: string
-  updated_at: string
-}
+// MealPlanProvider interface removed - creators are now part of User interface
 
 export interface MealPlan {
   id: string
-  provider_id: string
+  created_by_user_id: string
+  creator_name?: string // Denormalized for performance
+  creator_bio?: string // Denormalized for performance
+  creator_avatar_url?: string // Denormalized for performance
   title: string
   description: string
   duration_days: number
@@ -85,9 +87,9 @@ export interface UserPlanPurchase {
   id: string
   user_id: string
   meal_plan_id: string
-  provider_id: string
+  creator_user_id: string
   purchase_price: number
-  provider_earnings: number
+  creator_earnings: number
   platform_fee: number
   stripe_payment_intent_id?: string
   status: 'pending' | 'completed' | 'refunded'
@@ -154,7 +156,7 @@ export interface PlatformAnalytics {
   event_type: string
   meal_plan_id?: string
   user_id?: string
-  provider_id?: string
+  creator_user_id?: string
   session_id?: string
   metadata?: any
   ip_address?: string
@@ -166,7 +168,7 @@ export interface PlatformAnalytics {
 export interface FeedPost {
   id: string
   author_id: string
-  author_type: 'user' | 'provider' | 'admin'
+  // author_type removed - determine from users.is_creator instead
   post_type: 'meal_plan' | 'recipe_tip' | 'announcement'
   title: string
   content: string
@@ -215,7 +217,7 @@ export interface FeedCommentLike {
 export interface FeedFollow {
   id: string
   follower_user_id: string
-  following_provider_id: string
+  following_user_id: string // Updated from following_provider_id
   created_at: string
 }
 
@@ -234,12 +236,13 @@ export interface FeedPostWithAuthor extends FeedPost {
     name: string
     email: string
     user_type: string
-  }
-  provider?: {
-    id: string
-    business_name: string
-    profile_image_url: string | null
-    bio: string | null
+    // Creator info (if author is a creator)
+    is_creator: boolean
+    creator_display_name?: string
+    creator_profile_image_url?: string | null
+    creator_bio?: string | null
+    is_verified?: boolean
+    creator_tier?: 'bronze' | 'silver' | 'gold' | null
   }
   meal_plan?: {
     id: string
@@ -261,24 +264,22 @@ export interface FeedCommentWithAuthor extends FeedComment {
 }
 
 // Joined types for common queries
-export interface MealPlanWithProvider extends MealPlan {
-  provider: MealPlanProvider
+export interface MealPlanWithCreator extends MealPlan {
+  creator: Pick<User, 'id' | 'name' | 'is_creator' | 'creator_display_name' | 'creator_profile_image_url' | 'creator_bio' | 'creator_rating' | 'is_verified' | 'creator_tier'>
 }
 
 export interface MealPlanWithDaysAndMeals extends MealPlan {
-  provider: MealPlanProvider
+  creator: Pick<User, 'id' | 'name' | 'is_creator' | 'creator_display_name' | 'creator_profile_image_url' | 'creator_bio' | 'creator_rating' | 'is_verified' | 'creator_tier'>
   meal_plan_days: (MealPlanDay & {
     meals: Meal[]
   })[]
 }
 
-export interface UserWithProvider extends User {
-  meal_plan_provider?: MealPlanProvider
-}
+// UserWithProvider interface removed - creator info is now in User interface
 
 export interface PurchaseWithPlan extends UserPlanPurchase {
   meal_plan: MealPlan
-  provider: MealPlanProvider
+  creator: Pick<User, 'id' | 'name' | 'is_creator' | 'creator_display_name' | 'creator_profile_image_url' | 'creator_rating'>
 }
 
 export interface ReviewWithUser extends MealPlanReview {
@@ -294,11 +295,7 @@ export type Database = {
         Insert: Omit<User, 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>>
       }
-      meal_plan_providers: {
-        Row: MealPlanProvider
-        Insert: Omit<MealPlanProvider, 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Omit<MealPlanProvider, 'id' | 'created_at' | 'updated_at'>>
-      }
+      // meal_plan_providers table removed - creators are now part of users
       meal_plans: {
         Row: MealPlan
         Insert: Omit<MealPlan, 'id' | 'created_at' | 'updated_at'>

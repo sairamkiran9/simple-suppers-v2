@@ -1,20 +1,20 @@
 /**
- * useProviderMealPlans Hook
+ * useCreatorMealPlans Hook
  *
- * Manages fetching and state for provider's meal plans
+ * Manages fetching and state for creator's meal plans
  * Provides loading, error states, and refetch functionality
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { getProviderMealPlans } from '@/lib/api/provider'
-import type { ApiProviderMealPlan } from '@/lib/api/provider'
+import { getCreatorMealPlans } from '@/lib/api/creator'
+import type { ApiCreatorMealPlan } from '@/lib/api/creator'
 
-interface UseProviderMealPlansOptions {
+interface UseCreatorMealPlansOptions {
   enabled?: boolean
 }
 
-interface UseProviderMealPlansReturn {
-  data: ApiProviderMealPlan[] | null
+interface UseCreatorMealPlansReturn {
+  data: ApiCreatorMealPlan[] | null
   isLoading: boolean
   error: string | null
   isEmpty: boolean
@@ -22,7 +22,7 @@ interface UseProviderMealPlansReturn {
 }
 
 /**
- * Hook for fetching and managing provider's meal plans
+ * Hook for fetching and managing creator's meal plans
  *
  * @param options - Configuration options
  * @param options.enabled - Whether to automatically fetch data (default: true)
@@ -30,7 +30,7 @@ interface UseProviderMealPlansReturn {
  *
  * @example
  * ```tsx
- * const { data, isLoading, error, isEmpty, refetch } = useProviderMealPlans()
+ * const { data, isLoading, error, isEmpty, refetch } = useCreatorMealPlans()
  *
  * if (isLoading) return <div>Loading meal plans...</div>
  * if (error) return <div>Error: {error}</div>
@@ -38,12 +38,12 @@ interface UseProviderMealPlansReturn {
  * return <div>{data.length} meal plans</div>
  * ```
  */
-export function useProviderMealPlans(
-  options: UseProviderMealPlansOptions = {}
-): UseProviderMealPlansReturn {
+export function useCreatorMealPlans(
+  options: UseCreatorMealPlansOptions = {}
+): UseCreatorMealPlansReturn {
   const { enabled = true } = options
 
-  const [data, setData] = useState<ApiProviderMealPlan[] | null>(null)
+  const [data, setData] = useState<ApiCreatorMealPlan[] | null>(null)
   const [isLoading, setIsLoading] = useState(enabled)
   const [error, setError] = useState<string | null>(null)
 
@@ -54,7 +54,7 @@ export function useProviderMealPlans(
     setError(null)
 
     try {
-      const response = await getProviderMealPlans()
+      const response = await getCreatorMealPlans()
       if (response.success && response.data) {
         setData(response.data.meal_plans)
       } else if (response.success) {

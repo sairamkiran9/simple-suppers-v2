@@ -10,6 +10,19 @@ export interface AuthUser {
   name: string
   user_type: 'user' | 'provider' | 'admin'
   subscription_tier: 'freemium' | 'premium'
+  is_creator: boolean
+  is_active?: boolean | null
+  creator_display_name?: string | null
+  creator_bio?: string | null
+  creator_profile_image_url?: string | null
+  creator_email_verified?: boolean | null
+  total_earnings?: number | null
+  total_meal_plans_created?: number | null
+  creator_rating?: number | null
+  is_verified?: boolean | null
+  creator_tier?: string | null
+  created_at?: string | null
+  updated_at?: string | null
 }
 
 // JWT configuration - lazy initialization to allow builds without NEXTAUTH_SECRET
@@ -130,7 +143,20 @@ export async function getCurrentUser(request: NextRequest): Promise<AuthUser | n
       email: user.email,
       name: user.name,
       user_type: (user.user_type as 'user' | 'provider' | 'admin') || 'user',
-      subscription_tier: (user.subscription_tier as 'freemium' | 'premium') || 'freemium'
+      subscription_tier: (user.subscription_tier as 'freemium' | 'premium') || 'freemium',
+      is_creator: user.is_creator || false,
+      is_active: user.is_active,
+      creator_display_name: user.creator_display_name,
+      creator_bio: user.creator_bio,
+      creator_profile_image_url: user.creator_profile_image_url,
+      creator_email_verified: user.creator_email_verified,
+      total_earnings: user.total_earnings,
+      total_meal_plans_created: user.total_meal_plans_created,
+      creator_rating: user.creator_rating,
+      is_verified: user.is_verified,
+      creator_tier: user.creator_tier,
+      created_at: user.created_at,
+      updated_at: user.updated_at
     }
   } catch (error) {
     return null
@@ -270,7 +296,20 @@ export async function registerUser(userData: {
     email: user.email,
     name: user.name,
     user_type: (user.user_type as 'user' | 'provider' | 'admin') || 'user',
-    subscription_tier: (user.subscription_tier as 'freemium' | 'premium') || 'freemium'
+    subscription_tier: (user.subscription_tier as 'freemium' | 'premium') || 'freemium',
+    is_creator: user.is_creator || false,
+    is_active: user.is_active,
+    creator_display_name: user.creator_display_name,
+    creator_bio: user.creator_bio,
+    creator_profile_image_url: user.creator_profile_image_url,
+    creator_email_verified: user.creator_email_verified,
+    total_earnings: user.total_earnings,
+    total_meal_plans_created: user.total_meal_plans_created,
+    creator_rating: user.creator_rating,
+    is_verified: user.is_verified,
+    creator_tier: user.creator_tier,
+    created_at: user.created_at,
+    updated_at: user.updated_at
   }
 }
 
@@ -305,11 +344,24 @@ export async function loginUser(email: string, password: string): Promise<AuthUs
     email: user.email,
     name: user.name,
     user_type: (user.user_type as 'user' | 'provider' | 'admin') || 'user',
-    subscription_tier: (user.subscription_tier as 'freemium' | 'premium') || 'freemium'
+    subscription_tier: (user.subscription_tier as 'freemium' | 'premium') || 'freemium',
+    is_creator: user.is_creator || false,
+    is_active: user.is_active,
+    creator_display_name: user.creator_display_name,
+    creator_bio: user.creator_bio,
+    creator_profile_image_url: user.creator_profile_image_url,
+    creator_email_verified: user.creator_email_verified,
+    total_earnings: user.total_earnings,
+    total_meal_plans_created: user.total_meal_plans_created,
+    creator_rating: user.creator_rating,
+    is_verified: user.is_verified,
+    creator_tier: user.creator_tier,
+    created_at: user.created_at,
+    updated_at: user.updated_at
   }
 }
 
-// Check if user is a provider (has provider profile)
+// Check if user is a creator (has creator profile)
 export async function checkIsProvider(userId: string): Promise<{
   isProvider: boolean
   providerProfile?: {
@@ -322,28 +374,28 @@ export async function checkIsProvider(userId: string): Promise<{
     average_rating: number
   }
 }> {
-  const { data: provider, error } = await supabaseAdmin
-    .from('meal_plan_providers')
-    .select('id, business_name, bio, profile_image_url, total_earnings, total_plans, average_rating')
-    .eq('user_id', userId)
+  const { data: user, error } = await supabaseAdmin
+    .from('users')
+    .select('id, is_creator, creator_display_name, creator_bio, creator_profile_image_url, total_earnings, total_meal_plans_created, creator_rating')
+    .eq('id', userId)
     .eq('is_active', true)
     .eq('is_deleted', false)
     .single()
 
-  if (error || !provider) {
+  if (error || !user || !user.is_creator) {
     return { isProvider: false }
   }
 
   return {
     isProvider: true,
     providerProfile: {
-      id: provider.id,
-      business_name: provider.business_name,
-      bio: provider.bio,
-      profile_image_url: provider.profile_image_url,
-      total_earnings: Number(provider.total_earnings || 0),
-      total_plans: provider.total_plans || 0,
-      average_rating: Number(provider.average_rating)
+      id: user.id,
+      business_name: user.creator_display_name || user.id,
+      bio: user.creator_bio,
+      profile_image_url: user.creator_profile_image_url,
+      total_earnings: Number(user.total_earnings || 0),
+      total_plans: user.total_meal_plans_created || 0,
+      average_rating: Number(user.creator_rating || 0)
     }
   }
 }

@@ -30,7 +30,9 @@
       "Bash(npx playwright install:*)",
       "WebSearch",
       "Bash(echo:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(pg_dump:*)",
+      "Bash(npx supabase:*)"
     ],
     "deny": [],
     "ask": []

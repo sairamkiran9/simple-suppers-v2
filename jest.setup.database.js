@@ -9,6 +9,12 @@ const { TextEncoder, TextDecoder } = require('util')
 global.TextEncoder = TextEncoder
 global.TextDecoder = TextDecoder
 
+// Add ReadableStream polyfill
+if (!global.ReadableStream) {
+  const { ReadableStream } = require('stream/web')
+  global.ReadableStream = ReadableStream
+}
+
 // Polyfill File, Blob, and FormData for undici (required in Node.js < 20)
 if (typeof global.File === 'undefined') {
   class File {
@@ -50,27 +56,8 @@ if (typeof global.File === 'undefined') {
   global.File = File
 }
 
-if (typeof global.Blob === 'undefined') {
-  class Blob {
-    constructor(bits = [], options = {}) {
-      this.bits = bits
-      this.type = options.type || ''
-      this.size = bits.reduce((acc, bit) => acc + (bit.length || bit.size || 0), 0)
-    }
-
-    async text() {
-      return this.bits.map(bit => bit.toString()).join('')
-    }
-
-    async arrayBuffer() {
-      const text = await this.text()
-      return new TextEncoder().encode(text).buffer
-    }
-
-    slice(start, end, contentType) {
-      return new Blob(this.bits.slice(start, end), { type: contentType || this.type })
-    }
-  }
+if (!global.Blob) {
+  const { Blob } = require('buffer')
   global.Blob = Blob
 }
 

@@ -31,13 +31,19 @@ export async function POST(request: NextRequest) {
       return ErrorResponses.validation('meal_plan_id is required')
     }
 
-    // Get meal plan and provider details
+    // Get meal plan and creator details
     console.log('[Instant Purchase] Fetching meal plan...')
     const { data: mealPlan, error: planError } = await supabaseAdmin
       .from('meal_plans')
       .select(`
-        *,
-        provider:meal_plan_providers(*)
+        id,
+        title,
+        description,
+        duration_days,
+        final_price,
+        is_free,
+        created_by_user_id,
+        creator:users!created_by_user_id(id, name, creator_display_name)
       `)
       .eq('id', meal_plan_id)
       .eq('is_active', true)
@@ -73,18 +79,18 @@ export async function POST(request: NextRequest) {
     const platformFee = purchasePrice * 0.30
     console.log('[Instant Purchase] Creating purchase. Price:', purchasePrice)
 
-    // Validate provider_id exists
-    if (!mealPlan.provider_id) {
-      return ErrorResponses.validation('Meal plan has no associated provider')
+    // Validate creator_user_id exists
+    if (!mealPlan.created_by_user_id) {
+      return ErrorResponses.validation('Meal plan has no associated creator')
     }
 
     // Create purchase record
     const purchase = await createPurchase({
       user_id: user.id,
       meal_plan_id: meal_plan_id,
-      provider_id: mealPlan.provider_id,
+      creator_user_id: mealPlan.created_by_user_id,
       purchase_price: purchasePrice,
-      provider_earnings: providerEarnings,
+      creator_earnings: providerEarnings,
       platform_fee: platformFee,
       stripe_payment_intent_id: undefined,
       status: 'completed',
@@ -98,10 +104,10 @@ export async function POST(request: NextRequest) {
       event_type: 'purchase',
       user_id: user.id,
       meal_plan_id: meal_plan_id,
-      provider_id: mealPlan.provider_id,
+      creator_user_id: mealPlan.created_by_user_id,
       metadata: {
         purchase_price: purchasePrice,
-        provider_earnings: providerEarnings,
+        creator_earnings: providerEarnings,
         purchase_type: 'instant'
       }
     })

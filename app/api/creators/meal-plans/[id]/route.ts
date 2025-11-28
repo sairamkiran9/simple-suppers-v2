@@ -6,37 +6,26 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { UpdateMealPlanSchema, validateBody } from '@/lib/api/validation'
 
 /**
- * PATCH /api/providers/meal-plans/[id]
- * Update an existing meal plan owned by the authenticated provider
+ * PATCH /api/creators/meal-plans/[id]
+ * Update an existing meal plan owned by the authenticated creator
  *
- * Authentication: Required (Provider only)
- * Authorization: Provider must own the meal plan
+ * Authentication: Required (Creator only)
+ * Authorization: Creator must own the meal plan
  */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Authentication: Require authenticated provider
+    // Authentication: Require authenticated creator
     const user = await requireAuth(request)
 
     // Apply rate limiting
     withRateLimit(request, user.id, user.user_type)
 
-    // Authorization: Check if user is a provider
-    if (user.user_type !== 'provider') {
-      return ErrorResponses.forbidden('Only providers can access this endpoint')
-    }
-
-    // Get provider profile
-    const { data: provider, error: providerError } = await supabaseAdmin
-      .from('meal_plan_providers')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (providerError || !provider) {
-      throw new NotFoundError('Provider profile')
+    // Authorization: Check if user is a creator
+    if (!user.is_creator) {
+      return ErrorResponses.forbidden('Only creators can update meal plans')
     }
 
     // Parse and validate request body
@@ -52,7 +41,7 @@ export async function PATCH(
     // Check if meal plan exists and verify ownership
     const { data: existingMealPlan, error: fetchError } = await supabaseAdmin
       .from('meal_plans')
-      .select('id, provider_id, is_deleted')
+      .select('id, created_by_user_id, is_deleted')
       .eq('id', params.id)
       .single()
 
@@ -66,7 +55,7 @@ export async function PATCH(
     }
 
     // Verify ownership
-    if (existingMealPlan.provider_id !== provider.id) {
+    if (existingMealPlan.created_by_user_id !== user.id) {
       throw new AuthorizationError('You do not have permission to update this meal plan')
     }
 
@@ -141,11 +130,11 @@ export async function PATCH(
 }
 
 /**
- * DELETE /api/providers/meal-plans/[id]
- * Soft delete a meal plan owned by the authenticated provider
+ * DELETE /api/creators/meal-plans/[id]
+ * Soft delete a meal plan owned by the authenticated creator
  *
- * Authentication: Required (Provider only)
- * Authorization: Provider must own the meal plan
+ * Authentication: Required (Creator only)
+ * Authorization: Creator must own the meal plan
  *
  * Implementation: Soft delete by setting is_deleted=true, is_active=false, is_published=false
  */
@@ -154,32 +143,21 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Authentication: Require authenticated provider
+    // Authentication: Require authenticated creator
     const user = await requireAuth(request)
 
     // Apply rate limiting
     withRateLimit(request, user.id, user.user_type)
 
-    // Authorization: Check if user is a provider
-    if (user.user_type !== 'provider') {
-      return ErrorResponses.forbidden('Only providers can access this endpoint')
-    }
-
-    // Get provider profile
-    const { data: provider, error: providerError } = await supabaseAdmin
-      .from('meal_plan_providers')
-      .select('id, total_plans')
-      .eq('user_id', user.id)
-      .single()
-
-    if (providerError || !provider) {
-      throw new NotFoundError('Provider profile')
+    // Authorization: Check if user is a creator
+    if (!user.is_creator) {
+      return ErrorResponses.forbidden('Only creators can delete meal plans')
     }
 
     // Check if meal plan exists and verify ownership
     const { data: existingMealPlan, error: fetchError } = await supabaseAdmin
       .from('meal_plans')
-      .select('id, provider_id, is_deleted')
+      .select('id, created_by_user_id, is_deleted')
       .eq('id', params.id)
       .single()
 
@@ -193,7 +171,7 @@ export async function DELETE(
     }
 
     // Verify ownership
-    if (existingMealPlan.provider_id !== provider.id) {
+    if (existingMealPlan.created_by_user_id !== user.id) {
       throw new AuthorizationError('You do not have permission to delete this meal plan')
     }
 
@@ -212,13 +190,13 @@ export async function DELETE(
       throw new Error('Failed to delete meal plan')
     }
 
-    // Decrement provider's total_plans count
+    // Decrement creator's total_meal_plans_created count
     await supabaseAdmin
-      .from('meal_plan_providers')
+      .from('users')
       .update({
-        total_plans: Math.max(0, (provider.total_plans || 0) - 1)
-      })
-      .eq('id', provider.id)
+        total_meal_plans_created: Math.max(0, (user.total_meal_plans_created || 0) - 1)
+      } as any)
+      .eq('id', user.id)
 
     return SuccessResponses.ok({
       message: 'Meal plan deleted successfully',

@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useProviderDashboard } from '@/hooks/useProviderDashboard';
-import { useProviderMealPlans } from '@/hooks/useProviderMealPlans';
-import { useProviderMealPlanActions } from '@/hooks/useProviderMealPlanActions';
+import { useCreatorDashboard } from '@/hooks/useCreatorDashboard';
+import { useCreatorMealPlans } from '@/hooks/useCreatorMealPlans';
+import { useCreatorMealPlanActions } from '@/hooks/useCreatorMealPlanActions';
 
-export default function ProviderDashboard() {
+export default function CreatorDashboard() {
   const [formData, setFormData] = useState({
     title: '',
     price: '',
@@ -18,7 +18,7 @@ export default function ProviderDashboard() {
     data: dashboard,
     isLoading: isDashboardLoading,
     error: dashboardError
-  } = useProviderDashboard();
+  } = useCreatorDashboard();
 
   // Fetch meal plans
   const {
@@ -27,7 +27,7 @@ export default function ProviderDashboard() {
     error: plansError,
     isEmpty,
     refetch
-  } = useProviderMealPlans();
+  } = useCreatorMealPlans();
 
   // Meal plan actions
   const {
@@ -35,7 +35,7 @@ export default function ProviderDashboard() {
     deleteMealPlan,
     isUpdating,
     isDeleting
-  } = useProviderMealPlanActions();
+  } = useCreatorMealPlanActions();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +91,7 @@ export default function ProviderDashboard() {
     return (
       <div className="container">
         <div className="page-header">
-          <h1>Provider Dashboard</h1>
+          <h1>Creator Dashboard</h1>
           <p>Loading your dashboard...</p>
         </div>
         <div className="dashboard-card">
@@ -111,7 +111,7 @@ export default function ProviderDashboard() {
     return (
       <div className="container">
         <div className="page-header">
-          <h1>Provider Dashboard</h1>
+          <h1>Creator Dashboard</h1>
           <p>There was a problem loading your dashboard</p>
         </div>
         <div className="dashboard-card">
@@ -136,7 +136,7 @@ export default function ProviderDashboard() {
     return (
       <div className="container">
         <div className="page-header">
-          <h1>Provider Dashboard</h1>
+          <h1>Creator Dashboard</h1>
           <p>No dashboard data available</p>
         </div>
         <div className="dashboard-card">
@@ -151,8 +151,8 @@ export default function ProviderDashboard() {
   return (
     <div className="container">
       <div className="page-header">
-        <h1>Provider Dashboard</h1>
-        <p>Welcome back, {dashboard.provider.business_name}</p>
+        <h1>Creator Dashboard</h1>
+        <p>Welcome back, {dashboard.creator.creator_display_name}</p>
       </div>
 
       <div className="dashboard-grid">
@@ -272,7 +272,7 @@ export default function ProviderDashboard() {
                   <h4>{purchase.meal_plan_title}</h4>
                   <div className="plan-stats">
                     <span>{purchase.customer_name}</span>
-                    <span>Earned: ${purchase.provider_earnings.toFixed(2)}</span>
+                    <span>Earned: ${purchase.creator_earnings.toFixed(2)}</span>
                     <span className="text-sm text-gray-500">
                       {new Date(purchase.purchased_at).toLocaleDateString()}
                     </span>

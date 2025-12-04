@@ -1,0 +1,53 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js
+.next
+out
+build
+dist
+
+# Testing
+coverage
+.nyc_output
+__tests__/__snapshots__
+
+# Environment files
+.env
+.env*.local
+.env.production
+
+# Git
+.git
+.gitignore
+.github
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs
+docs
+*.md
+!README.md
+
+# Supabase local
+supabase/.branches
+supabase/.temp
+
+# Misc
+.todo
+*.log
+.cache
+temp
+tmp

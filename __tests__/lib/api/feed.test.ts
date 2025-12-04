@@ -100,14 +100,6 @@ describe('Feed API Client', () => {
       const mockChain = createChainableMock()
       
       mockChain.single.mockResolvedValue({
-        data: { user_type: 'provider' },
-        error: null
-      })
-      
-      mockChain.select.mockReturnValue(mockChain)
-      
-      const insertMock = createChainableMock()
-      insertMock.single.mockResolvedValue({
         data: {
           id: 'post-1',
           title: 'New Post',
@@ -117,9 +109,7 @@ describe('Feed API Client', () => {
         error: null
       })
       
-      supabaseAdmin.from
-        .mockReturnValueOnce(mockChain) // First call for user lookup
-        .mockReturnValueOnce(insertMock) // Second call for insert
+      supabaseAdmin.from.mockReturnValue(mockChain)
 
       const result = await createFeedPost({
         title: 'New Post',
@@ -128,9 +118,8 @@ describe('Feed API Client', () => {
       }, 'user-123')
 
       expect(result.id).toBe('post-1')
-      expect(insertMock.insert).toHaveBeenCalledWith({
+      expect(mockChain.insert).toHaveBeenCalledWith({
         author_id: 'user-123',
-        author_type: 'provider',
         title: 'New Post',
         content: 'Content',
         post_type: 'recipe_tip'

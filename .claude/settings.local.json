@@ -32,7 +32,8 @@
       "Bash(echo:*)",
       "Bash(npm run build:*)",
       "Bash(pg_dump:*)",
-      "Bash(npx supabase:*)"
+      "Bash(npx supabase:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []

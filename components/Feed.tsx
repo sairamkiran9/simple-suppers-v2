@@ -79,7 +79,7 @@ export function Feed() {
       ) : (
         <>
           {posts.map((post) => (
-            <FeedPost key={post.id} post={post} />
+            <FeedPost key={post.id} post={post} onDelete={refresh} />
           ))}
 
           {/* Load More Button */}

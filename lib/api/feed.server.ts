@@ -64,18 +64,10 @@ export async function createFeedPost(post: {
   related_meal_plan_id?: string
   tags?: string[]
 }, userId: string): Promise<FeedPost> {
-  // Get user type to set author_type
-  const { data: userData } = await supabaseAdmin
-    .from('users')
-    .select('user_type')
-    .eq('id', userId)
-    .single()
-
   const { data, error } = await supabaseAdmin
     .from('feed_posts')
     .insert({
       author_id: userId,
-      author_type: (userData?.user_type as 'user' | 'provider' | 'admin') || 'user',
       ...post
     })
     .select()
@@ -254,6 +246,33 @@ export async function recordShare(postId: string, platform = 'copy_link'): Promi
       user_id: user?.id || null,
       share_platform: platform
     })
+
+  if (error) throw error
+}
+
+// Delete a feed post (soft delete)
+export async function deleteFeedPost(postId: string, userId: string): Promise<void> {
+  // First check if post exists and user owns it
+  const { data: post, error: fetchError } = await supabaseAdmin
+    .from('feed_posts')
+    .select('author_id')
+    .eq('id', postId)
+    .eq('is_deleted', false)
+    .single()
+
+  if (fetchError || !post) {
+    throw new Error('Post not found')
+  }
+
+  if (post.author_id !== userId) {
+    throw new Error('Unauthorized')
+  }
+
+  // Soft delete the post
+  const { error } = await supabaseAdmin
+    .from('feed_posts')
+    .update({ is_deleted: true, updated_at: new Date().toISOString() })
+    .eq('id', postId)
 
   if (error) throw error
 }

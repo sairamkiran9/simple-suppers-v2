@@ -8,6 +8,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: { unoptimized: true },
+  output: 'standalone', // Enable standalone output for Docker
 };
 
 module.exports = withBundleAnalyzer(nextConfig);

@@ -11,6 +11,15 @@ global.TextEncoder = TextEncoder
 global.TextDecoder = TextDecoder
 
 // Add Web API polyfills BEFORE undici import
+if (!global.DOMException) {
+  global.DOMException = class DOMException extends Error {
+    constructor(message, name) {
+      super(message)
+      this.name = name || 'DOMException'
+    }
+  }
+}
+
 if (!global.ReadableStream) {
   const { ReadableStream } = require('stream/web')
   global.ReadableStream = ReadableStream

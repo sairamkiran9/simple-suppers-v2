@@ -9,6 +9,7 @@ temp*
 .UNSPLASH.ENV
 .changelog/
 task*
+.devcontainer
 
 # dependencies
 /node_modules

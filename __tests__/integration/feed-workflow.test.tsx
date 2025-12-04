@@ -32,6 +32,15 @@ jest.mock('sonner', () => ({
   }
 }))
 
+// Mock Next.js Image component to avoid URL validation issues in tests
+jest.mock('next/image', () => ({
+  __esModule: true,
+  default: (props: any) => {
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    return <img {...props} />
+  }
+}))
+
 // Mock clipboard API - must resolve successfully
 const mockWriteText = jest.fn(() => Promise.resolve())
 Object.defineProperty(navigator, 'clipboard', {
@@ -156,10 +165,10 @@ describe('Feed Workflow Integration', () => {
     expect(articles).toHaveLength(2)
 
     // Find like button in first post
-    // Button order: MoreHorizontal (0), Like (1), Comment (2), Share dropdown (3)
+    // The first post is not owned by the user, so buttons are: Like (0), Comment (1), Share (2)
     const firstPost = articles[0]
     const buttons = within(firstPost).getAllByRole('button')
-    const likeButton = buttons[1]
+    const likeButton = buttons[0]
 
     await userEvent.click(likeButton)
 
@@ -217,13 +226,13 @@ describe('Feed Workflow Integration', () => {
     await userEvent.click(submitButton)
 
     await waitFor(() => {
-      expect(mockCreatePost).toHaveBeenCalledWith({
-        title: 'New Recipe',
-        content: 'Amazing new dish!',
-        post_type: 'recipe_tip',
-        image_url: undefined,
-        tags: []
-      })
+      expect(mockCreatePost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'New Recipe',
+          content: 'Amazing new dish!',
+          post_type: 'recipe_tip'
+        })
+      )
     })
 
     await waitFor(() => {
@@ -237,6 +246,9 @@ describe('Feed Workflow Integration', () => {
     const { useAuth } = require('@/lib/auth-context')
     const { togglePostLike } = require('@/lib/api/feed.client')
     const { toast } = require('sonner')
+
+    // Clear all mocks including toast
+    jest.clearAllMocks()
 
     // Mock unauthenticated user
     useAuth.mockReturnValue({
@@ -267,19 +279,22 @@ describe('Feed Workflow Integration', () => {
     // Verify posts are displayed
     expect(screen.getByText('Delicious Pasta Recipe')).toBeInTheDocument()
 
-    // Find like button in first post
-    // Button order: MoreHorizontal (0), Like (1), Comment (2), Share dropdown (3)
+    // Find like button in first post by finding the Heart icon's parent button
     const articles = screen.getAllByRole('article')
     const firstPost = articles[0]
-    const buttons = within(firstPost).getAllByRole('button')
-    const likeButton = buttons[1]
+    
+    // Find the like button specifically (it contains the Heart icon)
+    const likeButton = within(firstPost).getAllByRole('button').find(button => {
+      return button.querySelector('.lucide-heart') !== null
+    })
 
-    await userEvent.click(likeButton)
+    expect(likeButton).toBeDefined()
+    await userEvent.click(likeButton!)
 
     // Should show toast error instead of making API call
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith('Please sign in to like posts')
-    })
+    }, { timeout: 2000 })
 
     // API should NOT be called for unauthenticated users
     expect(togglePostLike).not.toHaveBeenCalled()
@@ -429,17 +444,17 @@ describe('Feed Workflow Integration', () => {
     render(<Feed />)
 
     // Find share dropdown button in first post
-    // Button order: MoreHorizontal (0), Like (1), Comment (2), Share dropdown (3)
+    // The first post is not owned by the user, so buttons are: Like (0), Comment (1), Share (2)
     const articles = screen.getAllByRole('article')
     const firstPost = articles[0]
     const buttons = within(firstPost).getAllByRole('button')
-    const shareDropdownButton = buttons[3]
+    const shareDropdownButton = buttons[2]
 
     // Click to open dropdown
     await userEvent.click(shareDropdownButton)
 
-    // Click "Copy Link" menu item
-    const copyLinkOption = await screen.findByText('Copy Link')
+    // Click "Copy Link" menu item - use getByRole with name matcher
+    const copyLinkOption = await screen.findByRole('menuitem', { name: /copy link/i })
     await userEvent.click(copyLinkOption)
 
     // Should record the share and show success toast

@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '0')
     const limit = parseInt(searchParams.get('limit') || '20')
-    
+
     // Get user ID from auth header if present (optional for feed)
     let userId: string | undefined
     const authHeader = request.headers.get('authorization')
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await getFeedPosts(page, limit, userId)
-    
+
     return NextResponse.json(result)
   } catch (error) {
     console.error('Feed posts error:', error)
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.substring(7)
-    
+
     // Verify JWT token
     let userId: string
     try {

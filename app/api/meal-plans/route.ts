@@ -122,10 +122,10 @@ export async function GET(request: NextRequest) {
       is_featured: plan.is_featured,
       average_rating: plan.average_rating,
       total_purchases: plan.total_purchases,
-      provider: {
+      provider: plan.creator ? {
         name: plan.creator.creator_display_name || plan.creator.name,
         profile_image_url: plan.creator.creator_profile_image_url
-      },
+      } : undefined,
       preview_meals: [], // We'll populate this with sample meal names
       user_has_subscribed: user ? userPurchases.has(plan.id) : undefined,
       user_purchase_id: user ? userPurchases.get(plan.id) : undefined
@@ -144,11 +144,17 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    return SuccessResponses.ok({
+    const response = SuccessResponses.ok({
       meal_plans: responseData,
       total,
       has_more: ((offset || 0) + (limit || 20)) < total
     })
+
+    // Add browser-only cache header (no edge caching)
+    // 5 minutes cache for meal plans listing
+    response.headers.set('Cache-Control', 'max-age=300, private')
+
+    return response
 
   } catch (error) {
     return handleAPIError(error)

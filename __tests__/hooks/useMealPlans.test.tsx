@@ -4,35 +4,15 @@
 
 import { renderHook, waitFor } from '@testing-library/react'
 import { useMealPlans } from '@/hooks/useMealPlans'
+import { createQueryWrapper } from '@/__tests__/test-utils'
 import { getMealPlans } from '@/lib/api/meal-plans'
-import { AuthProvider, useAuth } from '@/lib/auth-context'
 
-// Mock the auth context
-jest.mock('@/lib/auth-context', () => ({
-  AuthProvider: ({ children }: { children: React.ReactNode }) => children,
-  useAuth: jest.fn(),
-}))
-
-const createWrapper = (isAuthenticated = true) => {
-  // Mock the useAuth hook
-  ;(useAuth as jest.Mock).mockReturnValue({
-    user: isAuthenticated ? { id: '1', email: 'test@example.com' } : null,
-    isLoading: false,
-    isAuthenticated,
-    login: jest.fn(),
-    register: jest.fn(),
-    logout: jest.fn(),
-  })
-
-  return function Wrapper({ children }: { children: React.ReactNode }) {
-    return <AuthProvider>{children}</AuthProvider>
-  }
-}
-
-
+// Mock the meal plans API
 jest.mock('@/lib/api/meal-plans')
 
 describe('useMealPlans', () => {
+  const wrapper = createQueryWrapper()
+
   beforeEach(() => {
     jest.clearAllMocks()
   })
@@ -69,16 +49,21 @@ describe('useMealPlans', () => {
 
     ;(getMealPlans as jest.Mock).mockResolvedValue(mockData)
 
-    const { result } = renderHook(() => useMealPlans(), { wrapper: createWrapper() } )
+    const { result } = renderHook(() => useMealPlans(), {
+      wrapper,
+    })
 
+    // React Query starts with isLoading = true
     expect(result.current.isLoading).toBe(true)
 
+    // Wait for the query to complete
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
     })
 
+    // Verify data is populated correctly
     expect(result.current.data).toEqual(mockData.data)
-    expect(result.current.error).toBe(null)
+    expect(result.current.error).toBeNull()
   })
 
   it('should update when filters change', async () => {
@@ -97,17 +82,23 @@ describe('useMealPlans', () => {
 
     const { result, rerender } = renderHook(
       ({ filters }) => useMealPlans(filters),
-      { initialProps: { filters: {} } }
+      {
+        initialProps: { filters: {} },
+        wrapper,
+      }
     )
 
+    // Wait for initial fetch with empty filters
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
     })
 
     expect(getMealPlans).toHaveBeenCalledWith({})
 
+    // Change filters and rerender
     rerender({ filters: { category: 'family' } })
 
+    // Wait for new fetch with updated filters
     await waitFor(() => {
       expect(getMealPlans).toHaveBeenCalledWith({ category: 'family' })
     })
@@ -115,27 +106,49 @@ describe('useMealPlans', () => {
 
   it('should handle loading state', async () => {
     ;(getMealPlans as jest.Mock).mockImplementation(
-      () => new Promise((resolve) => setTimeout(resolve, 100))
+      () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              success: true,
+              data: { meal_plans: [], total: 0 },
+            })
+          }, 100)
+        })
     )
 
-    const { result } = renderHook(() => useMealPlans(), { wrapper: createWrapper() } )
+    const { result } = renderHook(() => useMealPlans(), {
+      wrapper,
+    })
 
+    // Should start in loading state
     expect(result.current.isLoading).toBe(true)
-    expect(result.current.data).toBe(null)
+    expect(result.current.data).toBeUndefined()
+
+    // Wait for loading to complete
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.data).toBeDefined()
   })
 
   it('should handle error state', async () => {
     const mockError = new Error('Failed to fetch')
     ;(getMealPlans as jest.Mock).mockRejectedValue(mockError)
 
-    const { result } = renderHook(() => useMealPlans(), { wrapper: createWrapper() } )
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false)
+    const { result } = renderHook(() => useMealPlans(), {
+      wrapper,
     })
 
-    expect(result.current.error).toBe('Failed to fetch')
-    expect(result.current.data).toBe(null)
+    // Wait for the error to be set
+    await waitFor(() => {
+      expect(result.current.error).toBeInstanceOf(Error)
+    })
+
+    expect(result.current.error?.message).toBe('Failed to fetch')
+    expect(result.current.isLoading).toBe(false)
+    expect(result.current.data).toBeUndefined()
   })
 
   it('should support refetch functionality', async () => {
@@ -146,16 +159,21 @@ describe('useMealPlans', () => {
 
     ;(getMealPlans as jest.Mock).mockResolvedValue(mockData)
 
-    const { result } = renderHook(() => useMealPlans(), { wrapper: createWrapper() } )
+    const { result } = renderHook(() => useMealPlans(), {
+      wrapper,
+    })
 
+    // Wait for initial fetch
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
     })
 
     expect(getMealPlans).toHaveBeenCalledTimes(1)
 
+    // Call refetch
     result.current.refetch()
 
+    // Wait for refetch to complete
     await waitFor(() => {
       expect(getMealPlans).toHaveBeenCalledTimes(2)
     })
@@ -169,8 +187,11 @@ describe('useMealPlans', () => {
 
     ;(getMealPlans as jest.Mock).mockResolvedValue(mockData)
 
-    const { result } = renderHook(() =>
-      useMealPlans({ page: 2, limit: 10 })
+    const { result } = renderHook(
+      () => useMealPlans({ page: 2, limit: 10 }),
+      {
+        wrapper,
+      }
     )
 
     await waitFor(() => {
@@ -188,7 +209,9 @@ describe('useMealPlans', () => {
 
     ;(getMealPlans as jest.Mock).mockResolvedValue(mockData)
 
-    const { result } = renderHook(() => useMealPlans(), { wrapper: createWrapper() } )
+    const { result } = renderHook(() => useMealPlans(), {
+      wrapper,
+    })
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -204,8 +227,11 @@ describe('useMealPlans', () => {
       data: { meal_plans: [], total: 0 },
     })
 
-    renderHook(() => useMealPlans({}, { enabled: false }))
+    renderHook(() => useMealPlans({}, { enabled: false }), {
+      wrapper,
+    })
 
+    // When enabled is false, the query should not be executed
     expect(getMealPlans).not.toHaveBeenCalled()
   })
 })

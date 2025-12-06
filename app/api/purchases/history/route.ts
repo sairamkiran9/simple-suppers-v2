@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         purchase_price,
         purchased_at,
         meal_plan:meal_plans(title),
-        provider:meal_plan_providers(business_name)
+        creator:users!creator_user_id(id, name, creator_display_name, creator_profile_image_url)
       `, { count: 'exact' })
       .eq('user_id', user.id)
       .eq('status', 'completed')
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
       id: purchase.id,
       meal_plan_id: purchase.meal_plan_id,
       meal_plan_title: purchase.meal_plan?.title || 'Unknown Meal Plan',
-      provider_name: purchase.provider?.business_name || 'Unknown Provider',
+      provider_name: purchase.creator?.creator_display_name || purchase.creator?.name || 'Unknown Creator',
       purchase_price: purchase.purchase_price,
       purchased_at: purchase.purchased_at
     }))

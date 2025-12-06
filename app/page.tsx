@@ -214,7 +214,7 @@ export default function Home() {
             <div className="container">
               <div className="page-header">
                 <h1>Browse Meal Plans</h1>
-                <p className="error">Error: {plansError}</p>
+                <p className="error">Error: {plansError.message}</p>
               </div>
             </div>
           );

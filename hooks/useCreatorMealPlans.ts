@@ -1,28 +1,40 @@
 /**
- * useCreatorMealPlans Hook
+ * useCreatorMealPlans Hook - React Query Version
  *
- * Manages fetching and state for creator's meal plans
- * Provides loading, error states, and refetch functionality
+ * Manages fetching and caching creator's meal plans
+ * Uses React Query for automatic request deduplication and state management
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { getCreatorMealPlans } from '@/lib/api/creator'
 import type { ApiCreatorMealPlan } from '@/lib/api/creator'
 
 interface UseCreatorMealPlansOptions {
+  /** Whether to automatically fetch data (default: true) */
   enabled?: boolean
 }
 
 interface UseCreatorMealPlansReturn {
+  /** Array of creator's meal plans */
   data: ApiCreatorMealPlan[] | null
+  /** Loading state indicator */
   isLoading: boolean
+  /** Error message if fetch fails */
   error: string | null
+  /** Whether the meal plans list is empty */
   isEmpty: boolean
+  /** Function to manually trigger a refetch */
   refetch: () => void
 }
 
 /**
- * Hook for fetching and managing creator's meal plans
+ * Hook for fetching and managing creator's meal plans with React Query
+ *
+ * Benefits over manual state management:
+ * - Automatic request deduplication (multiple components = 1 API call)
+ * - Intelligent caching (2 minutes stale time for creator content)
+ * - Automatic error handling and retry
+ * - Background refetching support
  *
  * @param options - Configuration options
  * @param options.enabled - Whether to automatically fetch data (default: true)
@@ -43,51 +55,43 @@ export function useCreatorMealPlans(
 ): UseCreatorMealPlansReturn {
   const { enabled = true } = options
 
-  const [data, setData] = useState<ApiCreatorMealPlan[] | null>(null)
-  const [isLoading, setIsLoading] = useState(enabled)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
+    // Query key for caching - creator meal plans
+    queryKey: ['creator-meal-plans'],
 
-  const fetchMealPlans = useCallback(async () => {
-    if (!enabled) return
-
-    setIsLoading(true)
-    setError(null)
-
-    try {
+    // Query function that fetches the data
+    queryFn: async () => {
       const response = await getCreatorMealPlans()
+
       if (response.success && response.data) {
-        setData(response.data.meal_plans)
+        return response.data.meal_plans
       } else if (response.success) {
         throw new Error('No data returned from API')
       } else {
         throw new Error(response.error?.message || 'Failed to fetch meal plans')
       }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to fetch meal plans'
-      setError(errorMessage)
-      setData(null)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [enabled])
+    },
 
-  const refetch = useCallback(() => {
-    fetchMealPlans()
-  }, [fetchMealPlans])
+    // Only fetch if enabled
+    enabled,
 
-  useEffect(() => {
-    if (enabled) {
-      fetchMealPlans()
-    }
-  }, [enabled, fetchMealPlans])
+    // Cache configuration - shorter stale time for creator content that changes frequently
+    staleTime: 2 * 60 * 1000, // Consider data fresh for 2 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
 
-  const isEmpty = data !== null && data.length === 0
+    // Don't refetch on window focus (better UX)
+    refetchOnWindowFocus: false,
+
+    // Retry once on failure
+    retry: 1,
+  })
+
+  const isEmpty = data !== null && data !== undefined && data.length === 0
 
   return {
-    data,
+    data: data ?? null,
     isLoading,
-    error,
+    error: error ? (error instanceof Error ? error.message : 'Failed to fetch meal plans') : null,
     isEmpty,
     refetch,
   }

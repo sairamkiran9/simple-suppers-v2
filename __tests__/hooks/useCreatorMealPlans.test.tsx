@@ -4,15 +4,59 @@
  */
 
 import { renderHook, waitFor, act } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useCreatorMealPlans } from '@/hooks/useCreatorMealPlans'
 import * as creatorApi from '@/lib/api/creator'
 
 // Mock the creator API module
 jest.mock('@/lib/api/creator')
 
+/**
+ * Create a test QueryClient with appropriate settings
+ * - Retries disabled for fast test execution
+ * - Cache time set to 0 to prevent test interference
+ */
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: 0,
+        staleTime: 0,
+        refetchOnWindowFocus: false,
+        refetchOnMount: true,
+      },
+    },
+    logger: {
+      log: () => {},
+      warn: () => {},
+      error: () => {},
+    },
+  })
+}
+
+let queryClient: QueryClient
+
+/**
+ * Wrapper component that provides QueryClientProvider
+ * Necessary for hooks that use React Query
+ */
+function createWrapper() {
+  queryClient = createTestQueryClient()
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  )
+}
+
 describe('useCreatorMealPlans', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+  })
+
+  afterEach(() => {
+    queryClient?.clear()
   })
 
   it('should initialize with loading state', () => {
@@ -20,7 +64,9 @@ describe('useCreatorMealPlans', () => {
       () => new Promise(() => {}) // Never resolves
     )
 
-    const { result } = renderHook(() => useCreatorMealPlans())
+    const { result } = renderHook(() => useCreatorMealPlans(), {
+      wrapper: createWrapper(),
+    })
 
     expect(result.current.isLoading).toBe(true)
     expect(result.current.data).toBeNull()
@@ -59,9 +105,11 @@ describe('useCreatorMealPlans', () => {
       },
     }
 
-    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockResolvedValue(mockMealPlansData)
+    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockResolvedValueOnce(mockMealPlansData)
 
-    const { result } = renderHook(() => useCreatorMealPlans())
+    const { result } = renderHook(() => useCreatorMealPlans(), {
+      wrapper: createWrapper(),
+    })
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -81,9 +129,11 @@ describe('useCreatorMealPlans', () => {
       },
     }
 
-    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockResolvedValue(mockEmptyData)
+    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockResolvedValueOnce(mockEmptyData)
 
-    const { result } = renderHook(() => useCreatorMealPlans())
+    const { result } = renderHook(() => useCreatorMealPlans(), {
+      wrapper: createWrapper(),
+    })
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -96,15 +146,21 @@ describe('useCreatorMealPlans', () => {
 
   it('should handle errors gracefully', async () => {
     const mockError = new Error('Failed to fetch meal plans')
-    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockRejectedValue(mockError)
+    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockRejectedValueOnce(mockError)
 
-    const { result } = renderHook(() => useCreatorMealPlans())
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false)
+    const { result } = renderHook(() => useCreatorMealPlans(), {
+      wrapper: createWrapper(),
     })
 
-    expect(result.current.error).toBe('Failed to fetch meal plans')
+    // Wait for error to be set (React Query will retry once, then fail)
+    await waitFor(
+      () => {
+        expect(result.current.error).toBe('Failed to fetch meal plans')
+      },
+      { timeout: 2000 }
+    )
+
+    expect(result.current.isLoading).toBe(false)
     expect(result.current.data).toBeNull()
     expect(result.current.isEmpty).toBe(false)
   })
@@ -127,9 +183,11 @@ describe('useCreatorMealPlans', () => {
       },
     }
 
-    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockResolvedValue(mockMealPlansData)
+    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockResolvedValueOnce(mockMealPlansData)
 
-    const { result } = renderHook(() => useCreatorMealPlans())
+    const { result } = renderHook(() => useCreatorMealPlans(), {
+      wrapper: createWrapper(),
+    })
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -155,7 +213,7 @@ describe('useCreatorMealPlans', () => {
         ],
       },
     }
-    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockResolvedValue(updatedData)
+    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockResolvedValueOnce(updatedData)
 
     // Trigger refetch
     act(() => {
@@ -174,9 +232,11 @@ describe('useCreatorMealPlans', () => {
 
   it('should handle network errors', async () => {
     const mockError = new Error('Network error')
-    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockRejectedValue(mockError)
+    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockRejectedValueOnce(mockError)
 
-    const { result } = renderHook(() => useCreatorMealPlans())
+    const { result } = renderHook(() => useCreatorMealPlans(), {
+      wrapper: createWrapper(),
+    })
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -186,14 +246,16 @@ describe('useCreatorMealPlans', () => {
   })
 
   it('should not fetch if disabled', () => {
-    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockResolvedValue({
+    ;(creatorApi.getCreatorMealPlans as jest.Mock).mockResolvedValueOnce({
       success: true,
       data: {
         meal_plans: [],
       },
     })
 
-    const { result } = renderHook(() => useCreatorMealPlans({ enabled: false }))
+    const { result } = renderHook(() => useCreatorMealPlans({ enabled: false }), {
+      wrapper: createWrapper(),
+    })
 
     expect(result.current.isLoading).toBe(false)
     expect(result.current.data).toBeNull()

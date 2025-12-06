@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/lib/auth-context';
 import { Toaster } from '@/components/ui/sonner';
 import RegisterSW from './register-sw';
+import { Providers } from './providers';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -66,11 +67,13 @@ export default function RootLayout({
         ` }} />
       </head>
       <body className={inter.className}>
-        <AuthProvider>
-          <RegisterSW />
-          {children}
-          <Toaster />
-        </AuthProvider>
+        <Providers>
+          <AuthProvider>
+            <RegisterSW />
+            {children}
+            <Toaster />
+          </AuthProvider>
+        </Providers>
       </body>
     </html>
   );

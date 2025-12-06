@@ -10,6 +10,7 @@ temp*
 .changelog/
 task*
 .devcontainer
+task-progress.json
 
 # dependencies
 /node_modules
@@ -45,3 +46,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# PWA files
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map

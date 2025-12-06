@@ -1,14 +1,13 @@
 /**
- * useMealPlanDetail Hook
+ * useMealPlanDetail Hook - React Query Version
  *
- * Manages fetching and state for a specific meal plan's detailed information
- * Provides loading, error states, and refetch functionality
+ * Manages fetching and caching detailed meal plan data
+ * Uses React Query for automatic caching and request deduplication
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { getMealPlanDetail } from '@/lib/api/meal-plans'
 import type { ApiMealPlanDetail } from '@/lib/api-types'
-import { useAuth } from '@/lib/auth-context'
 
 interface UseMealPlanDetailOptions {
   /** Whether to automatically fetch data (default: true) */
@@ -27,7 +26,13 @@ interface UseMealPlanDetailReturn {
 }
 
 /**
- * Hook for fetching and managing detailed meal plan data by ID
+ * Hook for fetching and managing detailed meal plan data by ID with React Query
+ *
+ * Benefits over manual state management:
+ * - Automatic caching per meal plan ID
+ * - Request deduplication (multiple components requesting same plan = 1 API call)
+ * - 10 minute cache for meal plan details (matches API cache header)
+ * - Automatic error handling and retry
  *
  * @param id - The unique identifier of the meal plan
  * @param options - Configuration options
@@ -58,51 +63,42 @@ export function useMealPlanDetail(
   options: UseMealPlanDetailOptions = {}
 ): UseMealPlanDetailReturn {
   const { enabled = true } = options
-  const { isAuthenticated } = useAuth()
 
-  const [data, setData] = useState<ApiMealPlanDetail | null>(null)
-  const [isLoading, setIsLoading] = useState(enabled)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
+    // Query key includes ID for per-plan caching
+    queryKey: ['meal-plan-detail', id],
 
-  const fetchMealPlanDetail = useCallback(async () => {
-    if (!enabled) return
-
-    setIsLoading(true)
-    setError(null)
-
-    try {
+    // Query function that fetches the data
+    queryFn: async () => {
       const response = await getMealPlanDetail(id)
+
       if (response.success && response.data) {
-        setData(response.data)
+        return response.data
       } else if (response.success) {
         throw new Error('No data returned from API')
       } else {
         throw new Error(response.error?.message || 'Failed to fetch meal plan detail')
       }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to fetch meal plan detail'
-      setError(errorMessage)
-      setData(null)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [enabled, id, isAuthenticated])
+    },
 
-  const refetch = useCallback(() => {
-    fetchMealPlanDetail()
-  }, [fetchMealPlanDetail])
+    // Only fetch if enabled and ID is provided
+    enabled: enabled && !!id,
 
-  useEffect(() => {
-    if (enabled) {
-      fetchMealPlanDetail()
-    }
-  }, [enabled, fetchMealPlanDetail])
+    // Cache configuration - 10 minutes to match API cache header
+    staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
+    gcTime: 15 * 60 * 1000, // Keep in cache for 15 minutes
+
+    // Don't refetch on window focus (better UX)
+    refetchOnWindowFocus: false,
+
+    // Retry once on failure
+    retry: 1,
+  })
 
   return {
-    data,
+    data: data ?? null,
     isLoading,
-    error,
+    error: error ? (error instanceof Error ? error.message : 'Failed to fetch meal plan detail') : null,
     refetch,
   }
 }

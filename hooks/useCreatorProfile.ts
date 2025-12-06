@@ -1,30 +1,44 @@
 /**
- * useCreatorProfile Hook
+ * useCreatorProfile Hook - React Query Version
  *
  * Manages fetching and updating creator profile
- * Provides loading, error states, and update functionality
+ * Uses React Query for data fetching and manual state for updates
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { getCreatorProfile, updateCreatorProfile } from '@/lib/api/creator'
 import type { ApiCreatorProfile, UpdateCreatorProfileRequest } from '@/lib/api-types'
 import { toast } from 'sonner'
 
 interface UseCreatorProfileOptions {
+  /** Whether to automatically fetch data (default: true) */
   enabled?: boolean
 }
 
 interface UseCreatorProfileReturn {
+  /** Creator profile data */
   data: ApiCreatorProfile | null
+  /** Loading state for initial fetch */
   isLoading: boolean
+  /** Loading state for profile updates */
   isUpdating: boolean
+  /** Error message if fetch/update fails */
   error: string | null
+  /** Function to update the creator profile */
   updateProfile: (data: UpdateCreatorProfileRequest) => Promise<void>
+  /** Function to manually trigger a refetch */
   refetch: () => void
 }
 
 /**
- * Hook for fetching and managing creator profile
+ * Hook for fetching and managing creator profile with React Query
+ *
+ * Benefits over manual state management:
+ * - Automatic request deduplication for fetching
+ * - Intelligent caching (2 minutes stale time)
+ * - Automatic error handling and retry
+ * - Background refetching support
  *
  * @param options - Configuration options
  * @param options.enabled - Whether to automatically fetch data (default: true)
@@ -50,46 +64,51 @@ export function useCreatorProfile(
 ): UseCreatorProfileReturn {
   const { enabled = true } = options
 
-  const [data, setData] = useState<ApiCreatorProfile | null>(null)
-  const [isLoading, setIsLoading] = useState(enabled)
   const [isUpdating, setIsUpdating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [updateError, setUpdateError] = useState<string | null>(null)
 
-  const fetchProfile = useCallback(async () => {
-    if (!enabled) return
+  const { data, isLoading, error: fetchError, refetch } = useQuery({
+    // Query key for caching - creator profile
+    queryKey: ['creator-profile'],
 
-    setIsLoading(true)
-    setError(null)
-
-    try {
+    // Query function that fetches the data
+    queryFn: async () => {
       const response = await getCreatorProfile()
+
       if (response.success && response.data) {
-        setData(response.data)
+        return response.data
       } else if (response.success) {
         throw new Error('No data returned from API')
       } else {
         throw new Error(response.error?.message || 'Failed to fetch profile')
       }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to fetch profile'
-      setError(errorMessage)
-      setData(null)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [enabled])
+    },
+
+    // Only fetch if enabled
+    enabled,
+
+    // Cache configuration - 2 minutes for creator profile
+    staleTime: 2 * 60 * 1000, // Consider data fresh for 2 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+
+    // Don't refetch on window focus (better UX)
+    refetchOnWindowFocus: false,
+
+    // Retry once on failure
+    retry: 1,
+  })
 
   const handleUpdateProfile = useCallback(
     async (updateData: UpdateCreatorProfileRequest) => {
       setIsUpdating(true)
-      setError(null)
+      setUpdateError(null)
 
       try {
         const response = await updateCreatorProfile(updateData)
         if (response.success && response.data) {
-          setData(response.data.creator)
           toast.success('Profile updated successfully')
+          // Refetch to update cache with new data
+          await refetch()
         } else if (response.success) {
           throw new Error('Update succeeded but no data returned')
         } else {
@@ -98,28 +117,23 @@ export function useCreatorProfile(
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to update profile'
-        setError(errorMessage)
+        setUpdateError(errorMessage)
         toast.error(errorMessage)
         throw err
       } finally {
         setIsUpdating(false)
       }
     },
-    []
+    [refetch]
   )
 
-  const refetch = useCallback(() => {
-    fetchProfile()
-  }, [fetchProfile])
-
-  useEffect(() => {
-    if (enabled) {
-      fetchProfile()
-    }
-  }, [enabled, fetchProfile])
+  // Combine fetch and update errors
+  const error = fetchError
+    ? (fetchError instanceof Error ? fetchError.message : 'Failed to fetch profile')
+    : updateError
 
   return {
-    data,
+    data: data ?? null,
     isLoading,
     isUpdating,
     error,

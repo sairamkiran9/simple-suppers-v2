@@ -1,27 +1,39 @@
 /**
- * useCreatorDashboard Hook
+ * useCreatorDashboard Hook - React Query Version
  *
- * Manages fetching and state for creator dashboard data
- * Provides loading, error states, and refetch functionality
+ * Manages fetching and caching creator dashboard data
+ * Uses React Query for automatic request deduplication and state management
+ * Creator-specific data is always fetched fresh (no stale time)
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { getCreatorDashboard } from '@/lib/api/creator'
 import type { ApiCreatorDashboard } from '@/lib/api-types'
 
 interface UseCreatorDashboardOptions {
+  /** Whether to automatically fetch data (default: true) */
   enabled?: boolean
 }
 
 interface UseCreatorDashboardReturn {
+  /** Creator dashboard data */
   data: ApiCreatorDashboard | null
+  /** Loading state indicator */
   isLoading: boolean
+  /** Error message if fetch fails */
   error: string | null
+  /** Function to manually trigger a refetch */
   refetch: () => void
 }
 
 /**
- * Hook for fetching and managing creator dashboard data
+ * Hook for fetching and managing creator dashboard data with React Query
+ *
+ * Benefits over manual state management:
+ * - Automatic request deduplication (multiple components = 1 API call)
+ * - Always fresh data for creator-specific content (staleTime: 0)
+ * - Automatic error handling and retry
+ * - Background refetching support
  *
  * @param options - Configuration options
  * @param options.enabled - Whether to automatically fetch data (default: true)
@@ -41,49 +53,41 @@ export function useCreatorDashboard(
 ): UseCreatorDashboardReturn {
   const { enabled = true } = options
 
-  const [data, setData] = useState<ApiCreatorDashboard | null>(null)
-  const [isLoading, setIsLoading] = useState(enabled)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error, refetch } = useQuery({
+    // Query key for caching - creator-specific
+    queryKey: ['creator-dashboard'],
 
-  const fetchDashboard = useCallback(async () => {
-    if (!enabled) return
-
-    setIsLoading(true)
-    setError(null)
-
-    try {
+    // Query function that fetches the data
+    queryFn: async () => {
       const response = await getCreatorDashboard()
+
       if (response.success && response.data) {
-        setData(response.data)
+        return response.data
       } else if (response.success) {
         throw new Error('No data returned from API')
       } else {
         throw new Error(response.error?.message || 'Failed to fetch dashboard')
       }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to fetch dashboard'
-      setError(errorMessage)
-      setData(null)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [enabled])
+    },
 
-  const refetch = useCallback(() => {
-    fetchDashboard()
-  }, [fetchDashboard])
+    // Only fetch if enabled
+    enabled,
 
-  useEffect(() => {
-    if (enabled) {
-      fetchDashboard()
-    }
-  }, [enabled, fetchDashboard])
+    // Cache configuration - always fetch fresh for creator-specific data
+    staleTime: 0, // Always consider data stale
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+
+    // Don't refetch on window focus (better UX)
+    refetchOnWindowFocus: false,
+
+    // Retry once on failure
+    retry: 1,
+  })
 
   return {
-    data,
+    data: data ?? null,
     isLoading,
-    error,
+    error: error ? (error instanceof Error ? error.message : 'Failed to fetch dashboard') : null,
     refetch,
   }
 }

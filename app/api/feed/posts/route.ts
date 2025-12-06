@@ -24,7 +24,13 @@ export async function GET(request: NextRequest) {
 
     const result = await getFeedPosts(page, limit, userId)
 
-    return NextResponse.json(result)
+    const response = NextResponse.json(result)
+
+    // Add browser-only cache header (no edge caching)
+    // 1 minute cache for feed posts (dynamic content)
+    response.headers.set('Cache-Control', 'max-age=60, private')
+
+    return response
   } catch (error) {
     console.error('Feed posts error:', error)
     return NextResponse.json(

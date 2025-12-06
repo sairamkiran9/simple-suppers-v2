@@ -62,7 +62,7 @@ export interface ApiMealPlan {
   average_rating: number
   rating_count?: number
   total_purchases: number
-  provider: ApiMealPlanProvider
+  provider?: ApiMealPlanProvider
   preview_meals?: string[]
   user_has_subscribed?: boolean
   user_purchase_id?: string
@@ -106,7 +106,7 @@ export interface ApiMealPlanDetail {
   dietary_tags?: string[]
   difficulty_level?: string
   is_free?: boolean
-  provider: ApiMealPlanProvider
+  provider?: ApiMealPlanProvider
   meal_plan_days: ApiMealPlanDay[]
   user_has_subscribed?: boolean
   user_purchase_id?: string

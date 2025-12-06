@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     const freePlansRemaining = user.subscription_tier === 'freemium' ?
       Math.max(0, 3 - freePlansUsed) : 0
 
-    return SuccessResponses.ok({
+    const response = SuccessResponses.ok({
       user: {
         name: user.name,
         email: user.email,
@@ -84,6 +84,11 @@ export async function GET(request: NextRequest) {
       free_plans: freePhansData,
       total_spent: totalSpent
     })
+
+    // No caching for user-specific data
+    response.headers.set('Cache-Control', 'no-cache, must-revalidate, private')
+
+    return response
 
   } catch (error) {
     return handleAPIError(error)

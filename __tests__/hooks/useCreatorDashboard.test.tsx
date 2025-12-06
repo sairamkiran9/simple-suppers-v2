@@ -1,16 +1,19 @@
 /**
  * Tests for useCreatorDashboard hook
- * Manages creator dashboard data fetching and state
+ * Manages creator dashboard data fetching and state with React Query
  */
 
 import { renderHook, waitFor } from '@testing-library/react'
 import { useCreatorDashboard } from '@/hooks/useCreatorDashboard'
+import { createQueryWrapper } from '@/__tests__/test-utils'
 import * as creatorApi from '@/lib/api/creator'
 
 // Mock the creator API module
 jest.mock('@/lib/api/creator')
 
 describe('useCreatorDashboard', () => {
+  const wrapper = createQueryWrapper()
+
   beforeEach(() => {
     jest.clearAllMocks()
   })
@@ -20,7 +23,7 @@ describe('useCreatorDashboard', () => {
       () => new Promise(() => {}) // Never resolves
     )
 
-    const { result } = renderHook(() => useCreatorDashboard())
+    const { result } = renderHook(() => useCreatorDashboard(), { wrapper })
 
     expect(result.current.isLoading).toBe(true)
     expect(result.current.data).toBeNull()
@@ -79,7 +82,7 @@ describe('useCreatorDashboard', () => {
 
     ;(creatorApi.getCreatorDashboard as jest.Mock).mockResolvedValue(mockDashboardData)
 
-    const { result } = renderHook(() => useCreatorDashboard())
+    const { result } = renderHook(() => useCreatorDashboard(), { wrapper })
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -95,7 +98,7 @@ describe('useCreatorDashboard', () => {
     const mockError = new Error('Failed to fetch dashboard')
     ;(creatorApi.getCreatorDashboard as jest.Mock).mockRejectedValue(mockError)
 
-    const { result } = renderHook(() => useCreatorDashboard())
+    const { result } = renderHook(() => useCreatorDashboard(), { wrapper })
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -135,18 +138,6 @@ describe('useCreatorDashboard', () => {
       },
     }
 
-    ;(creatorApi.getCreatorDashboard as jest.Mock).mockResolvedValue(mockDashboardData)
-
-    const { result } = renderHook(() => useCreatorDashboard())
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false)
-    })
-
-    // Clear the mock to verify refetch calls it again
-    ;(creatorApi.getCreatorDashboard as jest.Mock).mockClear()
-
-    // Update mock data for refetch
     const updatedData = {
       ...mockDashboardData,
       data: {
@@ -157,14 +148,19 @@ describe('useCreatorDashboard', () => {
         },
       },
     }
-    ;(creatorApi.getCreatorDashboard as jest.Mock).mockResolvedValue(updatedData)
+
+    ;(creatorApi.getCreatorDashboard as jest.Mock)
+      .mockResolvedValueOnce(mockDashboardData)
+      .mockResolvedValueOnce(updatedData)
+
+    const { result } = renderHook(() => useCreatorDashboard(), { wrapper })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
 
     // Trigger refetch
     result.current.refetch()
-
-    await waitFor(() => {
-      expect(creatorApi.getCreatorDashboard).toHaveBeenCalledTimes(1)
-    })
 
     await waitFor(() => {
       expect(result.current.data?.analytics.total_sales).toBe(30)
@@ -201,9 +197,9 @@ describe('useCreatorDashboard', () => {
       },
     }
 
-    ;(creatorApi.getCreatorDashboard as jest.Mock).mockResolvedValue(mockDashboardData)
+    ;(creatorApi.getCreatorDashboard as jest.Mock).mockResolvedValueOnce(mockDashboardData)
 
-    const { result } = renderHook(() => useCreatorDashboard())
+    const { result } = renderHook(() => useCreatorDashboard(), { wrapper })
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -215,48 +211,22 @@ describe('useCreatorDashboard', () => {
 
   it('should handle network errors', async () => {
     const mockError = new Error('Network error')
-    ;(creatorApi.getCreatorDashboard as jest.Mock).mockRejectedValue(mockError)
+    ;(creatorApi.getCreatorDashboard as jest.Mock).mockRejectedValueOnce(mockError)
 
-    const { result } = renderHook(() => useCreatorDashboard())
+    const { result } = renderHook(() => useCreatorDashboard(), { wrapper })
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false)
+      expect(result.current.error).toBe('Network error')
     })
 
-    expect(result.current.error).toBe('Network error')
+    expect(result.current.isLoading).toBe(false)
   })
 
-  it('should not fetch if disabled', () => {
-    ;(creatorApi.getCreatorDashboard as jest.Mock).mockResolvedValue({
-      success: true,
-      data: {
-        creator: {
-          id: 'user-1',
-          is_creator: true,
-          creator_display_name: 'Test',
-          creator_bio: null,
-          creator_profile_image_url: null,
-          creator_email_verified: true,
-          is_active: true,
-          total_earnings: 0,
-          total_meal_plans_created: 0,
-          creator_rating: 0,
-        },
-        analytics: {
-          total_meal_plans: 0,
-          published_plans: 0,
-          draft_plans: 0,
-          total_views: 0,
-          total_sales: 0,
-          current_month_earnings: 0,
-          all_time_earnings: 0,
-        },
-        recent_purchases: [],
-        top_performing_plans: [],
-      },
-    })
+  it('should not fetch if disabled', async () => {
+    const { result } = renderHook(() => useCreatorDashboard({ enabled: false }), { wrapper })
 
-    const { result } = renderHook(() => useCreatorDashboard({ enabled: false }))
+    // Wait a bit to ensure no fetch happens
+    await new Promise(resolve => setTimeout(resolve, 50))
 
     expect(result.current.isLoading).toBe(false)
     expect(result.current.data).toBeNull()

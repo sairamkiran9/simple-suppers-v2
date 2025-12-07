@@ -39,14 +39,21 @@ export function createTestQueryClient(): QueryClient {
 }
 
 /**
+ * Wrapper component type with cleanup method
+ */
+type QueryWrapperWithCleanup = (({ children }: { children: React.ReactNode }) => React.JSX.Element) & {
+  cleanup: () => void
+}
+
+/**
  * Creates a wrapper component with QueryClientProvider
  *
  * Each call creates a fresh QueryClient instance, ensuring test isolation.
  * Use this for most tests where you need a simple QueryClientProvider wrapper.
- * 
+ *
  * IMPORTANT: Call this in beforeEach to get a fresh wrapper for each test.
  */
-export function createQueryWrapper() {
+export function createQueryWrapper(): QueryWrapperWithCleanup {
   const queryClient = createTestQueryClient()
 
   const wrapper = function QueryWrapper({ children }: { children: React.ReactNode }) {
@@ -55,10 +62,10 @@ export function createQueryWrapper() {
         {children}
       </QueryClientProvider>
     )
-  }
+  } as QueryWrapperWithCleanup
 
   // Attach cleanup method
-  ;(wrapper as any).cleanup = () => queryClient.clear()
+  wrapper.cleanup = () => queryClient.clear()
 
   return wrapper
 }

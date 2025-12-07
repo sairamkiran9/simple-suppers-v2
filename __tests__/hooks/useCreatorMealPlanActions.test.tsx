@@ -160,7 +160,7 @@ describe('useCreatorMealPlanActions', () => {
 
       const { result } = renderHook(() => useCreatorMealPlanActions())
 
-      let action: Promise<void>
+      let action: Promise<void> = Promise.resolve()
       await act(async () => {
         action = result.current.updateMealPlan('plan-1', { title: 'Updated' })
       })
@@ -257,7 +257,7 @@ describe('useCreatorMealPlanActions', () => {
 
       const { result } = renderHook(() => useCreatorMealPlanActions())
 
-      let action: Promise<void>
+      let action: Promise<void> = Promise.resolve()
       await act(async () => {
         action = result.current.deleteMealPlan('plan-1')
       })

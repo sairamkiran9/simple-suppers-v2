@@ -3,7 +3,7 @@
  * Manages creator meal plan update and delete operations
  */
 
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { useCreatorMealPlanActions } from '@/hooks/useCreatorMealPlanActions'
 import * as creatorApi from '@/lib/api/creator'
 import { toast } from 'sonner'
@@ -40,15 +40,18 @@ describe('useCreatorMealPlanActions', () => {
 
       expect(result.current.isUpdating).toBe(false)
 
-      const updatePromise = result.current.updateMealPlan('plan-1', {
-        title: 'Updated Title',
+      let updatePromise: Promise<void>
+      await act(async () => {
+        updatePromise = result.current.updateMealPlan('plan-1', {
+          title: 'Updated Title',
+        })
       })
 
       await waitFor(() => {
         expect(result.current.isUpdating).toBe(false)
       })
 
-      await updatePromise
+      await updatePromise!
 
       expect(creatorApi.updateMealPlan).toHaveBeenCalledWith('plan-1', {
         title: 'Updated Title',
@@ -78,7 +81,9 @@ describe('useCreatorMealPlanActions', () => {
 
       const { result } = renderHook(() => useCreatorMealPlanActions())
 
-      await result.current.updateMealPlan('plan-1', { is_published: true })
+      await act(async () => {
+        await result.current.updateMealPlan('plan-1', { is_published: true })
+      })
 
       await waitFor(() => {
         expect(result.current.isUpdating).toBe(false)
@@ -111,7 +116,9 @@ describe('useCreatorMealPlanActions', () => {
 
       const { result } = renderHook(() => useCreatorMealPlanActions())
 
-      await result.current.updateMealPlan('plan-1', { is_active: false })
+      await act(async () => {
+        await result.current.updateMealPlan('plan-1', { is_active: false })
+      })
 
       await waitFor(() => {
         expect(result.current.isUpdating).toBe(false)
@@ -129,9 +136,11 @@ describe('useCreatorMealPlanActions', () => {
 
       const { result } = renderHook(() => useCreatorMealPlanActions())
 
-      await expect(
-        result.current.updateMealPlan('plan-1', { title: 'Updated' })
-      ).rejects.toThrow('Failed to update meal plan')
+      await act(async () => {
+        await expect(
+          result.current.updateMealPlan('plan-1', { title: 'Updated' })
+        ).rejects.toThrow('Failed to update meal plan')
+      })
 
       await waitFor(() => {
         expect(result.current.isUpdating).toBe(false)
@@ -151,7 +160,10 @@ describe('useCreatorMealPlanActions', () => {
 
       const { result } = renderHook(() => useCreatorMealPlanActions())
 
-      const action = result.current.updateMealPlan('plan-1', { title: 'Updated' })
+      let action: Promise<void>
+      await act(async () => {
+        action = result.current.updateMealPlan('plan-1', { title: 'Updated' })
+      })
 
       // Should be loading immediately after calling
       await waitFor(() => {
@@ -199,13 +211,16 @@ describe('useCreatorMealPlanActions', () => {
 
       expect(result.current.isDeleting).toBe(false)
 
-      const deletePromise = result.current.deleteMealPlan('plan-1')
+      let deletePromise: Promise<void>
+      await act(async () => {
+        deletePromise = result.current.deleteMealPlan('plan-1')
+      })
 
       await waitFor(() => {
         expect(result.current.isDeleting).toBe(false)
       })
 
-      await deletePromise
+      await deletePromise!
 
       expect(creatorApi.deleteMealPlan).toHaveBeenCalledWith('plan-1')
       expect(toast.success).toHaveBeenCalledWith('Meal plan deleted successfully')
@@ -218,9 +233,11 @@ describe('useCreatorMealPlanActions', () => {
 
       const { result } = renderHook(() => useCreatorMealPlanActions())
 
-      await expect(result.current.deleteMealPlan('plan-1')).rejects.toThrow(
-        'Failed to delete meal plan'
-      )
+      await act(async () => {
+        await expect(result.current.deleteMealPlan('plan-1')).rejects.toThrow(
+          'Failed to delete meal plan'
+        )
+      })
 
       await waitFor(() => {
         expect(result.current.isDeleting).toBe(false)
@@ -240,7 +257,10 @@ describe('useCreatorMealPlanActions', () => {
 
       const { result } = renderHook(() => useCreatorMealPlanActions())
 
-      const action = result.current.deleteMealPlan('plan-1')
+      let action: Promise<void>
+      await act(async () => {
+        action = result.current.deleteMealPlan('plan-1')
+      })
 
       // Should be loading immediately after calling
       await waitFor(() => {

@@ -1,14 +1,11 @@
+'use client'
+
 /**
  * Offline Fallback Page
  *
  * Displayed when the user is offline and tries to access a page
  * that is not cached by the service worker
  */
-
-export const metadata = {
-  title: 'Offline - Simple Suppers',
-  description: 'You are currently offline',
-}
 
 export default function OfflinePage() {
   return (

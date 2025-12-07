@@ -113,11 +113,16 @@ describe('useUserDashboard', () => {
       wrapper: createWrapper(),
     })
 
-    await waitFor(() => {
-      expect(result.current.error).toBe('Failed to fetch dashboard')
-    })
+    // Wait for loading to complete AND error to be set
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false)
+        expect(result.current.error).not.toBeNull()
+      },
+      { timeout: 3000 }
+    )
 
-    expect(result.current.isLoading).toBe(false)
+    expect(result.current.error).toBe('Failed to fetch dashboard')
     expect(result.current.data).toBeNull()
   })
 
@@ -205,11 +210,16 @@ describe('useUserDashboard', () => {
       wrapper: createWrapper(),
     })
 
-    await waitFor(() => {
-      expect(result.current.error).toBe('Network error')
-    })
+    // Wait for loading to complete AND error to be set
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false)
+        expect(result.current.error).not.toBeNull()
+      },
+      { timeout: 3000 }
+    )
 
-    expect(result.current.isLoading).toBe(false)
+    expect(result.current.error).toBe('Network error')
     expect(result.current.data).toBeNull()
   })
 

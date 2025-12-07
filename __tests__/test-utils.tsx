@@ -35,11 +35,6 @@ export function createTestQueryClient(): QueryClient {
         retry: false,
       },
     },
-    logger: {
-      log: () => {},
-      warn: () => {},
-      error: () => {},
-    },
   })
 }
 

@@ -32,7 +32,7 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login' }: Aut
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] bg-white dark:bg-[var(--color-surface)] shadow-sm dark:shadow-lg">
+      <DialogContent className="sm:max-w-[500px] bg-[var(--color-surface)] shadow-sm dark:shadow-lg">
         <DialogHeader>
           <DialogTitle>Welcome to Simple Suppers</DialogTitle>
           <DialogDescription>

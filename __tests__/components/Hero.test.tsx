@@ -44,13 +44,13 @@ describe('Hero', () => {
     expect(mockOnViewChange).toHaveBeenCalledTimes(1)
   })
 
-  it('should call onViewChange with provider when Join Community clicked', () => {
+  it('should call onViewChange with feed when Join Community clicked', () => {
     render(<Hero onViewChange={mockOnViewChange} />)
 
     const joinButton = screen.getByRole('button', { name: /join community/i })
     fireEvent.click(joinButton)
 
-    expect(mockOnViewChange).toHaveBeenCalledWith('provider')
+    expect(mockOnViewChange).toHaveBeenCalledWith('feed')
     expect(mockOnViewChange).toHaveBeenCalledTimes(1)
   })
 

@@ -1,12 +1,11 @@
 import { supabase, supabaseAdmin, isSupabaseAdminConfigured } from './supabase'
 import type {
   MealPlan,
-  MealPlanWithProvider,
+  MealPlanWithCreator,
   MealPlanWithDaysAndMeals,
   User,
   UserPlanPurchase,
-  MealPlanReview,
-  MealPlanProvider
+  MealPlanReview
 } from './database-types'
 
 // Meal Plans
@@ -14,13 +13,23 @@ export async function getMealPlans(filters?: {
   category?: string
   is_free?: boolean
   is_featured?: boolean
-  provider_id?: string
+  creator_user_id?: string
 }) {
   let query = supabase
     .from('meal_plans')
     .select(`
       *,
-      provider:meal_plan_providers(*)
+      creator:users!created_by_user_id(
+        id,
+        name,
+        is_creator,
+        creator_display_name,
+        creator_profile_image_url,
+        creator_bio,
+        creator_rating,
+        is_verified,
+        creator_tier
+      )
     `)
     .eq('is_published', true)
     .eq('is_active', true)
@@ -35,14 +44,14 @@ export async function getMealPlans(filters?: {
   if (filters?.is_featured !== undefined) {
     query = query.eq('is_featured', filters.is_featured)
   }
-  if (filters?.provider_id) {
-    query = query.eq('provider_id', filters.provider_id)
+  if (filters?.creator_user_id) {
+    query = query.eq('created_by_user_id', filters.creator_user_id)
   }
 
   const { data, error } = await query.order('created_at', { ascending: false })
 
   if (error) throw error
-  return data as MealPlanWithProvider[]
+  return data as MealPlanWithCreator[]
 }
 
 export async function getMealPlanById(id: string) {
@@ -50,7 +59,17 @@ export async function getMealPlanById(id: string) {
     .from('meal_plans')
     .select(`
       *,
-      provider:meal_plan_providers(*),
+      creator:users!created_by_user_id(
+        id,
+        name,
+        is_creator,
+        creator_display_name,
+        creator_profile_image_url,
+        creator_bio,
+        creator_rating,
+        is_verified,
+        creator_tier
+      ),
       meal_plan_days(
         *,
         meals(*)
@@ -75,7 +94,31 @@ export async function createUser(userData: Partial<User>) {
   const { data, error } = await supabaseAdmin
     .from('users')
     .insert(userData as any)
-    .select()
+    .select(`
+      id,
+      email,
+      name,
+      auth_provider,
+      user_type,
+      subscription_tier,
+      free_plans_used,
+      dietary_preferences,
+      is_active,
+      is_deleted,
+      created_at,
+      updated_at,
+      is_creator,
+      creator_display_name,
+      creator_bio,
+      creator_profile_image_url,
+      total_meal_plans_created,
+      total_earnings,
+      creator_rating,
+      creator_email_verified,
+      is_verified,
+      creator_tier,
+      social_media_links
+    `)
     .single()
 
   if (error) throw error
@@ -85,7 +128,31 @@ export async function createUser(userData: Partial<User>) {
 export async function getUserById(id: string) {
   const { data, error } = await supabase
     .from('users')
-    .select('*')
+    .select(`
+      id,
+      email,
+      name,
+      auth_provider,
+      user_type,
+      subscription_tier,
+      free_plans_used,
+      dietary_preferences,
+      is_active,
+      is_deleted,
+      created_at,
+      updated_at,
+      is_creator,
+      creator_display_name,
+      creator_bio,
+      creator_profile_image_url,
+      total_meal_plans_created,
+      total_earnings,
+      creator_rating,
+      creator_email_verified,
+      is_verified,
+      creator_tier,
+      social_media_links
+    `)
     .eq('id', id)
     .eq('is_active', true)
     .eq('is_deleted', false)
@@ -95,29 +162,76 @@ export async function getUserById(id: string) {
   return data as User
 }
 
-// Provider Management
-export async function createProvider(providerData: Partial<MealPlanProvider>) {
+// Creator Management
+export async function enableCreatorMode(userId: string, creatorData: {
+  creator_display_name: string
+  creator_bio?: string
+  creator_profile_image_url?: string
+}) {
   const { data, error } = await supabase
-    .from('meal_plan_providers')
-    .insert(providerData as any)
-    .select()
+    .from('users')
+    .update({
+      is_creator: true,
+      ...creatorData
+    } as any)
+    .eq('id', userId)
+    .select(`
+      id,
+      email,
+      name,
+      auth_provider,
+      user_type,
+      subscription_tier,
+      free_plans_used,
+      dietary_preferences,
+      is_active,
+      is_deleted,
+      created_at,
+      updated_at,
+      is_creator,
+      creator_display_name,
+      creator_bio,
+      creator_profile_image_url,
+      total_meal_plans_created,
+      total_earnings,
+      creator_rating,
+      creator_email_verified,
+      is_verified,
+      creator_tier,
+      social_media_links
+    `)
     .single()
 
   if (error) throw error
-  return data as MealPlanProvider
+  return data as User
 }
 
-export async function getProviderByUserId(userId: string) {
+export async function getCreatorProfile(userId: string) {
   const { data, error } = await supabase
-    .from('meal_plan_providers')
-    .select('*')
-    .eq('user_id', userId)
+    .from('users')
+    .select(`
+      id,
+      name,
+      email,
+      is_creator,
+      creator_display_name,
+      creator_bio,
+      creator_profile_image_url,
+      total_meal_plans_created,
+      total_earnings,
+      creator_rating,
+      is_verified,
+      creator_tier,
+      social_media_links
+    `)
+    .eq('id', userId)
+    .eq('is_creator', true)
     .eq('is_active', true)
     .eq('is_deleted', false)
     .single()
 
   if (error) return null
-  return data as MealPlanProvider
+  return data as User
 }
 
 // Purchases
@@ -132,7 +246,21 @@ export async function createPurchase(purchaseData: Partial<UserPlanPurchase>) {
   const { data, error } = await supabaseAdmin
     .from('user_plan_purchases')
     .insert(purchaseData as any)
-    .select()
+    .select(`
+      id,
+      user_id,
+      meal_plan_id,
+      creator_user_id,
+      purchase_price,
+      creator_earnings,
+      platform_fee,
+      stripe_payment_intent_id,
+      status,
+      purchased_at,
+      expires_at,
+      is_active,
+      created_at
+    `)
     .single()
 
   if (error) {
@@ -153,9 +281,28 @@ export async function getUserPurchases(userId: string) {
   const { data, error } = await supabaseAdmin
     .from('user_plan_purchases')
     .select(`
-      *,
+      id,
+      user_id,
+      meal_plan_id,
+      creator_user_id,
+      purchase_price,
+      creator_earnings,
+      platform_fee,
+      stripe_payment_intent_id,
+      status,
+      purchased_at,
+      expires_at,
+      is_active,
+      created_at,
       meal_plan:meal_plans(*),
-      provider:meal_plan_providers(*)
+      creator:users!creator_user_id(
+        id,
+        name,
+        is_creator,
+        creator_display_name,
+        creator_profile_image_url,
+        creator_rating
+      )
     `)
     .eq('user_id', userId)
     .eq('is_active', true)
@@ -194,7 +341,21 @@ export async function cancelPurchase(purchaseId: string) {
       is_active: false
     })
     .eq('id', purchaseId)
-    .select()
+    .select(`
+      id,
+      user_id,
+      meal_plan_id,
+      creator_user_id,
+      purchase_price,
+      creator_earnings,
+      platform_fee,
+      stripe_payment_intent_id,
+      status,
+      purchased_at,
+      expires_at,
+      is_active,
+      created_at
+    `)
     .single()
 
   if (error) {
@@ -252,7 +413,7 @@ export async function trackEvent(eventData: {
   event_type: string
   meal_plan_id?: string
   user_id?: string
-  provider_id?: string
+  creator_user_id?: string
   session_id?: string
   metadata?: any
 }) {
@@ -308,7 +469,17 @@ export async function searchMealPlans(searchTerm: string) {
     .from('meal_plans')
     .select(`
       *,
-      provider:meal_plan_providers(*)
+      creator:users!created_by_user_id(
+        id,
+        name,
+        is_creator,
+        creator_display_name,
+        creator_profile_image_url,
+        creator_bio,
+        creator_rating,
+        is_verified,
+        creator_tier
+      )
     `)
     .or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%`)
     .eq('is_published', true)
@@ -317,5 +488,5 @@ export async function searchMealPlans(searchTerm: string) {
     .order('total_purchases', { ascending: false })
 
   if (error) throw error
-  return data as MealPlanWithProvider[]
+  return data as MealPlanWithCreator[]
 }

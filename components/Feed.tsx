@@ -38,7 +38,7 @@ export function Feed() {
   if (error) {
     return (
       <div className="text-center py-8">
-        <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+        <p className="text-red-600 dark:text-red-400 mb-4">{typeof error === 'string' ? error : error.message}</p>
         <Button onClick={refresh} variant="outline">
           <RefreshCw className="w-4 h-4 mr-2" />
           Try Again
@@ -79,7 +79,7 @@ export function Feed() {
       ) : (
         <>
           {posts.map((post) => (
-            <FeedPost key={post.id} post={post} />
+            <FeedPost key={post.id} post={post} onDelete={refresh} />
           ))}
 
           {/* Load More Button */}

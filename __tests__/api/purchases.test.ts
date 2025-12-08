@@ -87,7 +87,7 @@ describe('/api/purchases/create-intent', () => {
       id: '550e8400-e29b-41d4-a716-446655440000',
       title: 'Test Plan',
       final_price: 35.00,
-      provider_id: 'provider-1',
+      created_by_user_id: 'user-1',
       is_active: true,
       is_deleted: false,
       is_published: true
@@ -178,7 +178,7 @@ describe('/api/purchases/create-intent', () => {
       id: '550e8400-e29b-41d4-a716-446655440000',
       title: 'Test Plan',
       final_price: 35.00,
-      provider_id: 'provider-1',
+      created_by_user_id: 'user-1',
       is_active: false,
       is_deleted: false,
       is_published: true
@@ -220,7 +220,7 @@ describe('/api/purchases/create-intent', () => {
       id: '550e8400-e29b-41d4-a716-446655440000',
       title: 'Test Plan',
       final_price: 35.00,
-      provider_id: 'provider-1',
+      created_by_user_id: 'user-1',
       is_active: true,
       is_deleted: true,
       is_published: true
@@ -263,7 +263,7 @@ describe('/api/purchases/create-intent', () => {
       title: 'Free Plan',
       final_price: 0.00,
       is_free: true,
-      provider_id: 'provider-1',
+      created_by_user_id: 'user-1',
       is_active: true,
       is_deleted: false,
       is_published: true
@@ -366,8 +366,8 @@ describe('/api/purchases/history', () => {
         meal_plan: {
           title: 'Test Plan'
         },
-        provider: {
-          business_name: 'Test Provider'
+        creator: {
+          creator_display_name: 'Test Provider'
         }
       },
       {
@@ -378,8 +378,8 @@ describe('/api/purchases/history', () => {
         meal_plan: {
           title: 'Another Plan'
         },
-        provider: {
-          business_name: 'Another Provider'
+        creator: {
+          creator_display_name: 'Another Provider'
         }
       }
     ]

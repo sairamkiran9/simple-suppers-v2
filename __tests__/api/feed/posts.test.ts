@@ -35,6 +35,11 @@ jest.mock('@/lib/api/feed.server', () => ({
   createFeedPost: jest.fn()
 }))
 
+// Mock auth functions
+jest.mock('@/lib/api/auth', () => ({
+  verifyToken: jest.fn()
+}))
+
 describe('/api/feed/posts', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -84,10 +89,12 @@ describe('/api/feed/posts', () => {
 
     it('should pass user ID when authenticated', async () => {
       const { getFeedPosts } = require('@/lib/api/feed.server')
-      const { supabaseAdmin } = require('@/lib/supabase')
+      const { verifyToken } = require('@/lib/api/auth')
       
-      supabaseAdmin.auth.getUser.mockResolvedValue({
-        data: { user: { id: 'user-123' } }
+      verifyToken.mockReturnValue({
+        id: 'user-123',
+        email: 'test@example.com',
+        user_type: 'user'
       })
       getFeedPosts.mockResolvedValue({ posts: [], hasMore: false })
 
@@ -116,7 +123,14 @@ describe('/api/feed/posts', () => {
   describe('POST /api/feed/posts', () => {
     it('should create a new post successfully', async () => {
       const { createFeedPost } = require('@/lib/api/feed.server')
+      const { verifyToken } = require('@/lib/api/auth')
       
+      verifyToken.mockReturnValue({
+        id: 'user-123',
+        email: 'test@example.com',
+        user_type: 'user'
+      })
+
       const mockPost = {
         id: 'post-1',
         title: 'New Recipe',
@@ -129,6 +143,7 @@ describe('/api/feed/posts', () => {
 
       const request = new NextRequest('http://localhost:3000/api/feed/posts', {
         method: 'POST',
+        headers: { authorization: 'Bearer valid-token' },
         body: JSON.stringify({
           title: 'New Recipe',
           content: 'Amazing dish!',
@@ -148,12 +163,21 @@ describe('/api/feed/posts', () => {
         image_url: undefined,
         related_meal_plan_id: undefined,
         tags: undefined
-      })
+      }, 'user-123')
     })
 
     it('should validate required fields', async () => {
+      const { verifyToken } = require('@/lib/api/auth')
+      
+      verifyToken.mockReturnValue({
+        id: 'user-123',
+        email: 'test@example.com',
+        user_type: 'user'
+      })
+
       const request = new NextRequest('http://localhost:3000/api/feed/posts', {
         method: 'POST',
+        headers: { authorization: 'Bearer valid-token' },
         body: JSON.stringify({
           title: 'New Recipe'
           // Missing content and post_type
@@ -169,11 +193,19 @@ describe('/api/feed/posts', () => {
 
     it('should handle creation errors', async () => {
       const { createFeedPost } = require('@/lib/api/feed.server')
+      const { verifyToken } = require('@/lib/api/auth')
       
-      createFeedPost.mockRejectedValue(new Error('Not authenticated'))
+      verifyToken.mockReturnValue({
+        id: 'user-123',
+        email: 'test@example.com',
+        user_type: 'user'
+      })
+      
+      createFeedPost.mockRejectedValue(new Error('Database error'))
 
       const request = new NextRequest('http://localhost:3000/api/feed/posts', {
         method: 'POST',
+        headers: { authorization: 'Bearer valid-token' },
         body: JSON.stringify({
           title: 'New Recipe',
           content: 'Amazing dish!',
@@ -190,6 +222,13 @@ describe('/api/feed/posts', () => {
 
     it('should handle all post types', async () => {
       const { createFeedPost } = require('@/lib/api/feed.server')
+      const { verifyToken } = require('@/lib/api/auth')
+      
+      verifyToken.mockReturnValue({
+        id: 'user-123',
+        email: 'test@example.com',
+        user_type: 'user'
+      })
       
       createFeedPost.mockResolvedValue({ id: 'post-1' })
 
@@ -198,6 +237,7 @@ describe('/api/feed/posts', () => {
       for (const postType of postTypes) {
         const request = new NextRequest('http://localhost:3000/api/feed/posts', {
           method: 'POST',
+          headers: { authorization: 'Bearer valid-token' },
           body: JSON.stringify({
             title: `Test ${postType}`,
             content: 'Test content',

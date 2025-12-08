@@ -29,7 +29,7 @@ export default function MealPlanCard({ plan, onViewDetails, onSubscribe, onUnsub
             {isSubscribed && <span className="badge badge--featured">Subscribed</span>}
           </div>
         </div>
-        <p className="meal-plan-provider">by {plan.provider.name || plan.provider.business_name || 'Unknown Provider'}</p>
+        <p className="meal-plan-provider">by {plan.provider?.name || plan.provider?.business_name || plan.provider?.creator_display_name || 'Unknown Creator'}</p>
         <div className="meal-plan-meta">
           <div className="meal-plan-price">
             {plan.is_free ? 'Free' : `$${plan.final_price.toFixed(2)}`}

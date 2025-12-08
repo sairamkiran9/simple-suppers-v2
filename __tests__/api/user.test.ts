@@ -380,8 +380,8 @@ describe('/api/user/dashboard', () => {
           title: 'Active Plan',
           duration_days: 7
         },
-        provider: {
-          business_name: 'Test Provider'
+        creator: {
+          creator_display_name: 'Test Provider'
         }
       }
     ])
@@ -533,7 +533,7 @@ describe('/api/user/dashboard', () => {
       is_active: false,
       purchase_price: 10,
       meal_plan: { id: `plan-${i}`, title: `Plan ${i}`, duration_days: 7 },
-      provider: { business_name: 'Provider' },
+      creator: { creator_display_name: 'Provider' },
       purchased_at: '2024-01-01',
       expires_at: '2024-01-08'
     })))

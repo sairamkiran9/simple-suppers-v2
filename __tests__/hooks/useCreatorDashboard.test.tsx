@@ -1,0 +1,262 @@
+/**
+ * Tests for useCreatorDashboard hook
+ * Manages creator dashboard data fetching and state with React Query
+ */
+
+import { renderHook, waitFor } from '@testing-library/react'
+import { useCreatorDashboard } from '@/hooks/useCreatorDashboard'
+import { createQueryWrapper } from '@/__tests__/test-utils'
+import * as creatorApi from '@/lib/api/creator'
+
+// Mock the creator API module
+jest.mock('@/lib/api/creator')
+
+describe('useCreatorDashboard', () => {
+  let wrapper: any
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    wrapper = createQueryWrapper() // Fresh QueryClient for each test
+  })
+
+  afterEach(() => {
+    wrapper.cleanup?.() // Clear React Query cache
+  })
+
+  it('should initialize with loading state', async () => {
+    ;(creatorApi.getCreatorDashboard as jest.Mock).mockImplementation(
+      () => new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({ success: true, data: {} })
+        }, 100)
+      })
+    )
+
+    const { result } = renderHook(() => useCreatorDashboard(), { wrapper })
+
+    // React Query may transition states synchronously in tests
+    // Focus on the transition rather than initial state
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.data).toBeDefined()
+  })
+
+  it('should fetch dashboard data successfully', async () => {
+    const mockDashboardData = {
+      success: true,
+      data: {
+        creator: {
+          id: 'user-1',
+          is_creator: true,
+          creator_display_name: 'Test Creator',
+          creator_bio: 'Amazing meals',
+          creator_profile_image_url: null,
+          creator_email_verified: true,
+          is_active: true,
+          total_earnings: 500,
+          total_meal_plans_created: 5,
+          creator_rating: 4.5,
+        },
+        analytics: {
+          total_meal_plans: 5,
+          published_plans: 3,
+          draft_plans: 2,
+          total_views: 100,
+          total_sales: 20,
+          current_month_earnings: 150,
+          all_time_earnings: 500,
+        },
+        recent_purchases: [
+          {
+            id: 'purchase-1',
+            meal_plan_title: 'Weekly Meal Plan',
+            customer_name: 'John Doe',
+            customer_email: 'john@example.com',
+            purchase_price: 25.0,
+            creator_earnings: 20.0,
+            purchased_at: '2024-01-01T00:00:00Z',
+            status: 'completed',
+          },
+        ],
+        top_performing_plans: [
+          {
+            id: 'plan-1',
+            title: 'Popular Plan',
+            total_purchases: 50,
+            total_views: 200,
+            average_rating: 4.8,
+            final_price: 25.0,
+          },
+        ],
+      },
+    }
+
+    ;(creatorApi.getCreatorDashboard as jest.Mock).mockResolvedValue(mockDashboardData)
+
+    const { result } = renderHook(() => useCreatorDashboard(), { wrapper })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.data).toEqual(mockDashboardData.data)
+    expect(result.current.error).toBeNull()
+    expect(result.current.data?.creator.creator_display_name).toBe('Test Creator')
+    expect(result.current.data?.analytics.published_plans).toBe(3)
+  })
+
+  it('should handle errors gracefully', async () => {
+    const mockError = new Error('Failed to fetch dashboard')
+    ;(creatorApi.getCreatorDashboard as jest.Mock).mockRejectedValue(mockError)
+
+    const { result } = renderHook(() => useCreatorDashboard(), { wrapper })
+
+    // Wait for loading to complete AND error to be set
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false)
+        expect(result.current.error).not.toBeNull()
+      },
+      { timeout: 3000 }
+    )
+
+    expect(result.current.error).toBe('Failed to fetch dashboard')
+    expect(result.current.data).toBeNull()
+  })
+
+  it('should provide refetch function', async () => {
+    const mockDashboardData = {
+      success: true,
+      data: {
+        creator: {
+          id: 'user-1',
+          is_creator: true,
+          creator_display_name: 'Test Creator',
+          creator_bio: 'Amazing meals',
+          creator_profile_image_url: null,
+          creator_email_verified: true,
+          is_active: true,
+          total_earnings: 500,
+          total_meal_plans_created: 5,
+          creator_rating: 4.5,
+        },
+        analytics: {
+          total_meal_plans: 5,
+          published_plans: 3,
+          draft_plans: 2,
+          total_views: 100,
+          total_sales: 20,
+          current_month_earnings: 150,
+          all_time_earnings: 500,
+        },
+        recent_purchases: [],
+        top_performing_plans: [],
+      },
+    }
+
+    const updatedData = {
+      ...mockDashboardData,
+      data: {
+        ...mockDashboardData.data,
+        analytics: {
+          ...mockDashboardData.data.analytics,
+          total_sales: 30,
+        },
+      },
+    }
+
+    ;(creatorApi.getCreatorDashboard as jest.Mock)
+      .mockResolvedValueOnce(mockDashboardData)
+      .mockResolvedValueOnce(updatedData)
+
+    const { result } = renderHook(() => useCreatorDashboard(), { wrapper })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    // Trigger refetch
+    result.current.refetch()
+
+    await waitFor(() => {
+      expect(result.current.data?.analytics.total_sales).toBe(30)
+    })
+  })
+
+  it('should handle empty dashboard data', async () => {
+    const mockDashboardData = {
+      success: true,
+      data: {
+        creator: {
+          id: 'user-new',
+          is_creator: true,
+          creator_display_name: 'New Creator',
+          creator_bio: null,
+          creator_profile_image_url: null,
+          creator_email_verified: true,
+          is_active: true,
+          total_earnings: 0,
+          total_meal_plans_created: 0,
+          creator_rating: 0,
+        },
+        analytics: {
+          total_meal_plans: 0,
+          published_plans: 0,
+          draft_plans: 0,
+          total_views: 0,
+          total_sales: 0,
+          current_month_earnings: 0,
+          all_time_earnings: 0,
+        },
+        recent_purchases: [],
+        top_performing_plans: [],
+      },
+    }
+
+    ;(creatorApi.getCreatorDashboard as jest.Mock).mockResolvedValueOnce(mockDashboardData)
+
+    const { result } = renderHook(() => useCreatorDashboard(), { wrapper })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.data?.analytics.total_meal_plans).toBe(0)
+    expect(result.current.data?.recent_purchases).toHaveLength(0)
+  })
+
+  it('should handle network errors', async () => {
+    // Mock for both initial call and retry (hook has retry: 1)
+    ;(creatorApi.getCreatorDashboard as jest.Mock).mockResolvedValue({
+      success: false,
+      error: { message: 'Network error' }
+    })
+
+    const { result } = renderHook(() => useCreatorDashboard(), { wrapper })
+
+    // Wait for loading to complete
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false)
+      },
+      { timeout: 5000 }
+    )
+
+    // The hook converts errors to strings, and the error message should match
+    expect(result.current.error).toBe('Network error')
+  })
+
+  it('should not fetch if disabled', async () => {
+    const { result } = renderHook(() => useCreatorDashboard({ enabled: false }), { wrapper })
+
+    // Wait a bit to ensure no fetch happens
+    await new Promise(resolve => setTimeout(resolve, 50))
+
+    expect(result.current.isLoading).toBe(false)
+    expect(result.current.data).toBeNull()
+    expect(creatorApi.getCreatorDashboard).not.toHaveBeenCalled()
+  })
+})

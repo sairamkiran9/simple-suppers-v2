@@ -72,7 +72,7 @@ describe('Feed API Client', () => {
       const result = await getFeedPosts(0, 10)
 
       expect(result.posts).toHaveLength(1)
-      expect(result.posts[0].author.name).toBe('Sample Provider')
+      expect(result.posts[0].author.name).toBe('Sample Creator')
       expect(mockChain.eq).toHaveBeenCalledWith('is_active', true)
       expect(mockChain.eq).toHaveBeenCalledWith('is_deleted', false)
       expect(mockChain.range).toHaveBeenCalledWith(0, 10)
@@ -95,23 +95,11 @@ describe('Feed API Client', () => {
   })
 
   describe('createFeedPost', () => {
-    it('should create a new post when authenticated', async () => {
+    it('should create a new post with userId', async () => {
       const { supabaseAdmin } = require('@/lib/supabase')
       const mockChain = createChainableMock()
       
-      supabaseAdmin.auth.getUser.mockResolvedValue({
-        data: { user: { id: 'user-123' } }
-      })
-      
       mockChain.single.mockResolvedValue({
-        data: { user_type: 'provider' },
-        error: null
-      })
-      
-      mockChain.select.mockReturnValue(mockChain)
-      
-      const insertMock = createChainableMock()
-      insertMock.single.mockResolvedValue({
         data: {
           id: 'post-1',
           title: 'New Post',
@@ -121,38 +109,40 @@ describe('Feed API Client', () => {
         error: null
       })
       
-      supabaseAdmin.from
-        .mockReturnValueOnce(mockChain) // First call for user lookup
-        .mockReturnValueOnce(insertMock) // Second call for insert
+      supabaseAdmin.from.mockReturnValue(mockChain)
 
       const result = await createFeedPost({
         title: 'New Post',
         content: 'Content',
         post_type: 'recipe_tip'
-      })
+      }, 'user-123')
 
       expect(result.id).toBe('post-1')
-      expect(insertMock.insert).toHaveBeenCalledWith({
+      expect(mockChain.insert).toHaveBeenCalledWith({
         author_id: 'user-123',
-        author_type: 'provider',
         title: 'New Post',
         content: 'Content',
         post_type: 'recipe_tip'
       })
     })
 
-    it('should throw error when not authenticated', async () => {
+    it('should handle database errors', async () => {
       const { supabaseAdmin } = require('@/lib/supabase')
+      const mockChain = createChainableMock()
       
-      supabaseAdmin.auth.getUser.mockResolvedValue({
-        data: { user: null }
+      const error = new Error('Database error')
+      mockChain.single.mockResolvedValue({
+        data: null,
+        error
       })
+      
+      supabaseAdmin.from.mockReturnValue(mockChain)
 
       await expect(createFeedPost({
         title: 'Test',
         content: 'Test',
         post_type: 'recipe_tip'
-      })).rejects.toThrow('Not authenticated')
+      }, 'user-123')).rejects.toThrow(error)
     })
   })
 
@@ -302,28 +292,29 @@ describe('Feed API Client', () => {
   })
 
   describe('getTrendingProviders', () => {
-    it('should fetch trending providers', async () => {
+    it('should fetch trending creators', async () => {
       const { supabaseAdmin } = require('@/lib/supabase')
       const mockChain = createChainableMock()
-      
+
       mockChain.limit.mockResolvedValue({
         data: [
           {
-            id: 'provider-1',
-            business_name: 'Test Kitchen',
-            total_plans: 10,
-            average_rating: 4.5
+            id: 'creator-1',
+            name: 'Test User',
+            creator_display_name: 'Test Kitchen',
+            total_meal_plans_created: 10,
+            creator_rating: 4.5
           }
         ],
         error: null
       })
-      
+
       supabaseAdmin.from.mockReturnValue(mockChain)
 
       const result = await getTrendingProviders(5)
 
       expect(result).toHaveLength(1)
-      expect(result[0].business_name).toBe('Test Kitchen')
+      expect(result[0].creator_display_name).toBe('Test Kitchen')
       expect(mockChain.limit).toHaveBeenCalledWith(5)
     })
   })

@@ -4,11 +4,41 @@
  */
 
 import { renderHook, waitFor, act } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useUserDashboard } from '@/hooks/useUserDashboard'
 import * as userApi from '@/lib/api/user'
 
 // Mock the user API module
 jest.mock('@/lib/api/user')
+
+/**
+ * Create a test QueryClient with appropriate settings
+ * - Retries disabled for fast test execution
+ * - Cache time set to 0 to prevent test interference
+ */
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: 0,
+      },
+    },
+  })
+}
+
+/**
+ * Wrapper component that provides QueryClientProvider
+ * Necessary for hooks that use React Query
+ */
+function createWrapper() {
+  const testQueryClient = createTestQueryClient()
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={testQueryClient}>
+      {children}
+    </QueryClientProvider>
+  )
+}
 
 describe('useUserDashboard', () => {
   beforeEach(() => {
@@ -20,7 +50,9 @@ describe('useUserDashboard', () => {
       () => new Promise(() => {}) // Never resolves
     )
 
-    const { result } = renderHook(() => useUserDashboard())
+    const { result } = renderHook(() => useUserDashboard(), {
+      wrapper: createWrapper(),
+    })
 
     expect(result.current.isLoading).toBe(true)
     expect(result.current.data).toBeNull()
@@ -59,7 +91,9 @@ describe('useUserDashboard', () => {
 
     ;(userApi.getUserDashboard as jest.Mock).mockResolvedValue(mockDashboardData)
 
-    const { result } = renderHook(() => useUserDashboard())
+    const { result } = renderHook(() => useUserDashboard(), {
+      wrapper: createWrapper(),
+    })
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -75,11 +109,18 @@ describe('useUserDashboard', () => {
     const mockError = new Error('Failed to fetch dashboard')
     ;(userApi.getUserDashboard as jest.Mock).mockRejectedValue(mockError)
 
-    const { result } = renderHook(() => useUserDashboard())
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false)
+    const { result } = renderHook(() => useUserDashboard(), {
+      wrapper: createWrapper(),
     })
+
+    // Wait for loading to complete AND error to be set
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false)
+        expect(result.current.error).not.toBeNull()
+      },
+      { timeout: 3000 }
+    )
 
     expect(result.current.error).toBe('Failed to fetch dashboard')
     expect(result.current.data).toBeNull()
@@ -103,14 +144,13 @@ describe('useUserDashboard', () => {
 
     ;(userApi.getUserDashboard as jest.Mock).mockResolvedValue(mockDashboardData)
 
-    const { result } = renderHook(() => useUserDashboard())
+    const { result } = renderHook(() => useUserDashboard(), {
+      wrapper: createWrapper(),
+    })
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
     })
-
-    // Clear the mock to verify refetch calls it again
-    ;(userApi.getUserDashboard as jest.Mock).mockClear()
 
     // Update mock data for refetch
     const updatedData = {
@@ -123,12 +163,8 @@ describe('useUserDashboard', () => {
     ;(userApi.getUserDashboard as jest.Mock).mockResolvedValue(updatedData)
 
     // Trigger refetch
-    act(() => {
-      result.current.refetch()
-    })
-
-    await waitFor(() => {
-      expect(userApi.getUserDashboard).toHaveBeenCalledTimes(1)
+    await act(async () => {
+      await result.current.refetch()
     })
 
     await waitFor(() => {
@@ -154,7 +190,9 @@ describe('useUserDashboard', () => {
 
     ;(userApi.getUserDashboard as jest.Mock).mockResolvedValue(mockDashboardData)
 
-    const { result } = renderHook(() => useUserDashboard())
+    const { result } = renderHook(() => useUserDashboard(), {
+      wrapper: createWrapper(),
+    })
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
@@ -168,13 +206,21 @@ describe('useUserDashboard', () => {
     const mockError = new Error('Network error')
     ;(userApi.getUserDashboard as jest.Mock).mockRejectedValue(mockError)
 
-    const { result } = renderHook(() => useUserDashboard())
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false)
+    const { result } = renderHook(() => useUserDashboard(), {
+      wrapper: createWrapper(),
     })
 
+    // Wait for loading to complete AND error to be set
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false)
+        expect(result.current.error).not.toBeNull()
+      },
+      { timeout: 3000 }
+    )
+
     expect(result.current.error).toBe('Network error')
+    expect(result.current.data).toBeNull()
   })
 
   it('should not fetch if disabled', () => {
@@ -188,7 +234,9 @@ describe('useUserDashboard', () => {
       },
     })
 
-    const { result } = renderHook(() => useUserDashboard({ enabled: false }))
+    const { result } = renderHook(() => useUserDashboard({ enabled: false }), {
+      wrapper: createWrapper(),
+    })
 
     expect(result.current.isLoading).toBe(false)
     expect(result.current.data).toBeNull()

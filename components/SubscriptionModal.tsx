@@ -14,13 +14,23 @@ interface SubscriptionModalProps {
 export default function SubscriptionModal({ isOpen, plan, onClose, onConfirm, isLoading = false }: SubscriptionModalProps) {
   if (!isOpen || !plan) return null;
 
+  // Debug logging to understand data structure issues
+  if (!plan.provider) {
+    console.warn('SubscriptionModal: plan.provider is missing', { plan });
+  }
+
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
   };
 
-  const providerName = plan.provider.name || plan.provider.business_name || 'Unknown Provider';
+  // Defensive handling for missing provider data with multiple fallbacks
+  const providerData = plan.provider || (plan as any).creator;
+  const providerName = providerData?.creator_display_name ||
+                       providerData?.name ||
+                       providerData?.business_name ||
+                       'Unknown Provider';
   const isFree = 'is_free' in plan ? plan.is_free : false;
 
   return (

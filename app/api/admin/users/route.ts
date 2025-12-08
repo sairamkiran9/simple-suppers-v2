@@ -38,7 +38,12 @@ export async function GET(request: NextRequest) {
         is_active,
         is_deleted,
         created_at,
-        updated_at
+        updated_at,
+        is_creator,
+        creator_display_name,
+        total_meal_plans_created,
+        total_earnings,
+        creator_rating
       `, { count: 'exact' })
       .eq('is_deleted', false)
 
@@ -65,28 +70,6 @@ export async function GET(request: NextRequest) {
       throw new Error('Failed to fetch users')
     }
 
-    // Get provider info for provider users
-    const providerUsers = users?.filter((u: any) => u.user_type === 'provider') || []
-    const providerData = new Map()
-
-    if (providerUsers.length > 0) {
-      const { data: providers } = await supabaseAdmin!
-        .from('meal_plan_providers')
-        .select(`
-          user_id,
-          business_name,
-          total_earnings,
-          total_plans,
-          average_rating,
-          is_active
-        `)
-        .in('user_id', providerUsers.map((u: any) => u.id))
-
-      providers?.forEach(provider => {
-        providerData.set(provider.user_id, provider)
-      })
-    }
-
     // Transform response data
     const responseData = (users || []).map((user: any) => {
       const baseUser = {
@@ -103,18 +86,16 @@ export async function GET(request: NextRequest) {
         updated_at: user.updated_at
       }
 
-      // Add provider info if applicable
-      if (user.user_type === 'provider') {
-        const provider = providerData.get(user.id)
+      // Add creator info if applicable
+      if (user.is_creator) {
         return {
           ...baseUser,
-          provider_info: provider ? {
-            business_name: provider.business_name,
-            total_earnings: provider.total_earnings,
-            total_plans: provider.total_plans,
-            average_rating: provider.average_rating,
-            provider_is_active: provider.is_active
-          } : null
+          creator_info: {
+            creator_display_name: user.creator_display_name,
+            total_earnings: user.total_earnings,
+            total_plans: user.total_meal_plans_created,
+            creator_rating: user.creator_rating
+          }
         }
       }
 

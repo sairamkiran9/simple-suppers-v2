@@ -39,10 +39,11 @@ export async function GET(request: NextRequest) {
         .eq('is_active', true)
         .eq('is_deleted', false),
 
-      // Total providers
+      // Total creators (providers)
       ensureSupabaseAdmin()
-        .from('meal_plan_providers')
+        .from('users')
         .select('id', { count: 'exact' })
+        .eq('is_creator', true)
         .eq('is_active', true)
         .eq('is_deleted', false),
 
@@ -92,7 +93,7 @@ export async function GET(request: NextRequest) {
         is_published,
         is_active,
         created_at,
-        provider:meal_plan_providers(business_name)
+        creator:users!created_by_user_id(id, name, creator_display_name)
       `)
       .eq('is_deleted', false)
       .order('created_at', { ascending: false })
@@ -155,7 +156,7 @@ export async function GET(request: NextRequest) {
         meal_plans: (recentMealPlans || []).map((plan: any) => ({
           id: plan.id,
           title: plan.title,
-          provider_name: plan.provider?.business_name || 'Unknown Provider',
+          provider_name: plan.creator?.creator_display_name || plan.creator?.name || 'Unknown Creator',
           is_published: plan.is_published,
           is_active: plan.is_active,
           created_at: plan.created_at

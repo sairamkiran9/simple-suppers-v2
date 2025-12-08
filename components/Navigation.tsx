@@ -17,12 +17,12 @@ export default function Navigation({ currentView, onViewChange, onLoginClick }: 
 
   const handleNavClick = (view: ViewType) => {
     // Check if protected route
-    if (view === 'dashboard' && (!isAuthenticated || user?.user_type !== 'user')) {
+    if (view === 'dashboard' && !isAuthenticated) {
       onLoginClick();
       return;
     }
 
-    if (view === 'provider' && (!isAuthenticated || user?.user_type !== 'provider')) {
+    if (view === 'creator' && (!isAuthenticated || !user?.is_creator)) {
       onLoginClick();
       return;
     }
@@ -39,12 +39,16 @@ export default function Navigation({ currentView, onViewChange, onLoginClick }: 
     { view: 'landing' as ViewType, label: 'Home', protected: false },
     { view: 'browse' as ViewType, label: 'Browse Plans', protected: false },
     { view: 'feed' as ViewType, label: 'Community', protected: false },
-    { view: 'provider' as ViewType, label: 'For Providers', protected: true, requiresType: 'provider' },
   ];
 
-  // Add My Account only if user is logged in as a user
-  if (isAuthenticated && user?.user_type === 'user') {
-    navItems.push({ view: 'dashboard' as ViewType, label: 'My Account', protected: true, requiresType: 'user' });
+  // Add My Account only if user is logged in
+  if (isAuthenticated) {
+    navItems.push({ view: 'dashboard' as ViewType, label: 'My Account', protected: true });
+  }
+
+  // Add Creator Dashboard only if user is a creator
+  if (isAuthenticated && user?.is_creator) {
+    navItems.push({ view: 'creator' as ViewType, label: 'Creator Dashboard', protected: true });
   }
 
   return (

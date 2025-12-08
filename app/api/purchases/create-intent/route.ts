@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       .from('meal_plans')
       .select(`
         *,
-        provider:meal_plan_providers(business_name)
+        creator:users!created_by_user_id(id, name, creator_display_name)
       `)
       .eq('id', meal_plan_id)
       .eq('is_active', true)
@@ -64,9 +64,9 @@ export async function POST(request: NextRequest) {
     // Convert price to cents for Stripe
     const amountInCents = dollarsToCents(mealPlan.final_price)
 
-    // Validate provider_id exists
-    if (!mealPlan.provider_id) {
-      return ErrorResponses.validation('Meal plan has no associated provider')
+    // Validate created_by_user_id exists
+    if (!mealPlan.created_by_user_id) {
+      return ErrorResponses.validation('Meal plan has no associated creator')
     }
 
     // Create mock payment intent
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       metadata: {
         meal_plan_id: meal_plan_id,
         user_id: user.id,
-        provider_id: mealPlan.provider_id
+        creator_user_id: mealPlan.created_by_user_id
       }
     })
 
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
         id: mealPlan.id,
         title: mealPlan.title,
         final_price: mealPlan.final_price,
-        provider_name: mealPlan.provider?.business_name ?? 'Unknown Provider'
+        provider_name: (mealPlan.creator as any)?.creator_display_name || (mealPlan.creator as any)?.name || 'Unknown Creator'
       }
     })
 

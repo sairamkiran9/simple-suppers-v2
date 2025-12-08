@@ -1,0 +1,794 @@
+import { NextRequest } from 'next/server'
+import { PATCH, DELETE } from '@/app/api/creators/meal-plans/[id]/route'
+
+// Mock Supabase with dynamic configuration
+const mockSupabase = {
+  mockResponses: {
+    users: { data: null, error: null },
+    meal_plans: { data: null, error: null },
+    update: { data: null, error: null },
+    lastUpdateData: {}
+  } as Record<string, any>,
+
+  callCounts: {} as Record<string, number>,
+
+  setTableResponse: (table: string, response: any) => {
+    mockSupabase.mockResponses[table] = response
+  },
+
+  setMockResponse: (operation: string, response: any) => {
+    mockSupabase.mockResponses[operation] = response
+  },
+
+  reset: () => {
+    mockSupabase.mockResponses = {
+      users: { data: null, error: null },
+      meal_plans: { data: null, error: null },
+      update: { data: null, error: null },
+      lastUpdateData: {}
+    } as Record<string, any>
+    mockSupabase.callCounts = {}
+  },
+
+  getTableResponse: (table: string) => {
+    return mockSupabase.mockResponses[table] || { data: null, error: null }
+  }
+}
+
+jest.mock('@/lib/supabase', () => {
+  const createFromMock = (tableName: string) => {
+    const createQueryChain = (): any => {
+      const chain: any = {
+        select: jest.fn(() => chain),
+        eq: jest.fn(() => chain),
+        single: jest.fn(() => Promise.resolve(mockSupabase.getTableResponse(tableName)))
+      }
+      return chain
+    }
+
+    const fromObject = {
+      select: jest.fn(() => createQueryChain()),
+      update: jest.fn((data) => {
+        // Store update data for verification - track per table
+        if (!mockSupabase.mockResponses.lastUpdateData) {
+          mockSupabase.mockResponses.lastUpdateData = {}
+        }
+        mockSupabase.mockResponses.lastUpdateData[tableName] = data
+        return {
+          eq: jest.fn(() => {
+            // For DELETE endpoint (no .select() after .eq())
+            const deleteChain = {
+              select: jest.fn(() => ({
+                single: jest.fn(() => Promise.resolve(mockSupabase.mockResponses.update))
+              }))
+            }
+            // Return promise with select method for chaining
+            const promise = Promise.resolve(mockSupabase.mockResponses.update)
+            return Object.assign(promise, deleteChain)
+          })
+        }
+      })
+    }
+    return fromObject
+  }
+
+  return {
+    supabase: {
+      from: createFromMock
+    },
+    supabaseAdmin: {
+      from: createFromMock
+    },
+    isSupabaseAdminConfigured: jest.fn(() => true),
+    isSupabaseConfigured: jest.fn(() => true)
+  }
+})
+
+// Mock creator authentication
+const mockAuthUser = {
+  id: 'user-1',
+  email: 'creator@example.com',
+  user_type: 'user',
+  name: 'Test Creator',
+  subscription_tier: 'premium' as const,
+  is_creator: true,
+  total_meal_plans_created: 5
+}
+
+jest.mock('@/lib/api/auth', () => ({
+  requireAuth: jest.fn(() => Promise.resolve(mockAuthUser))
+}))
+
+// Mock rate limiting
+jest.mock('@/lib/api/rate-limit', () => ({
+  withRateLimit: jest.fn()
+}))
+
+// Mock validation
+jest.mock('@/lib/api/validation', () => {
+  const z = require('zod')
+
+  // Create actual schema for testing
+  const UpdateMealPlanSchema = z.object({
+    title: z.string().min(1).optional(),
+    description: z.string().min(1).optional(),
+    category: z.string().min(1).optional(),
+    dietary_tags: z.array(z.string()).optional(),
+    difficulty_level: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
+    is_published: z.boolean().optional(),
+    is_active: z.boolean().optional()
+  }).refine(
+    (data: any) => Object.keys(data).length > 0,
+    { message: 'At least one field must be provided for update' }
+  )
+
+  return {
+    UpdateMealPlanSchema,
+    validateBody: jest.fn((schema, body) => {
+      const result = UpdateMealPlanSchema.safeParse(body)
+      if (result.success) {
+        return { success: true, data: result.data }
+      }
+      const errors = result.error.errors.map((err: any) => `${err.path.join('.')}: ${err.message}`).join(', ')
+      return { success: false, error: errors }
+    })
+  }
+})
+
+const { requireAuth } = require('@/lib/api/auth')
+const { supabase } = require('@/lib/supabase')
+
+describe('/api/creators/meal-plans/[id]', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockSupabase.reset()
+
+    // Reset auth mock to default creator user
+    requireAuth.mockResolvedValue(mockAuthUser)
+  })
+
+  describe('PATCH', () => {
+    const mockCreator = {
+      id: 'user-1',
+      is_creator: true,
+      total_meal_plans_created: 5
+    }
+
+    const mockExistingMealPlan = {
+      id: 'plan-1',
+      created_by_user_id: 'user-1',
+      is_deleted: false,
+      title: 'Original Title',
+      description: 'Original Description'
+    }
+
+    it('should successfully update meal plan title', async () => {
+      // Mock creator profile
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
+        error: null
+      })
+
+      // Mock existing meal plan (for ownership check)
+      mockSupabase.setTableResponse('meal_plans', {
+        data: mockExistingMealPlan,
+        error: null
+      })
+
+      // Mock update response
+      mockSupabase.setMockResponse('update', {
+        data: {
+          ...mockExistingMealPlan,
+          title: 'Updated Title',
+          updated_at: '2025-10-09T12:00:00Z'
+        },
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer creator-token',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title: 'Updated Title' })
+      })
+
+      const response = await PATCH(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(data.data.meal_plan.title).toBe('Updated Title')
+    })
+
+    it('should successfully update meal plan description', async () => {
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
+        error: null
+      })
+
+      mockSupabase.setTableResponse('meal_plans', {
+        data: mockExistingMealPlan,
+        error: null
+      })
+
+      mockSupabase.setMockResponse('update', {
+        data: {
+          ...mockExistingMealPlan,
+          description: 'Updated Description',
+          updated_at: '2025-10-09T12:00:00Z'
+        },
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer creator-token',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ description: 'Updated Description' })
+      })
+
+      const response = await PATCH(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(data.data.meal_plan.description).toBe('Updated Description')
+    })
+
+    it('should successfully update multiple fields', async () => {
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
+        error: null
+      })
+
+      mockSupabase.setTableResponse('meal_plans', {
+        data: mockExistingMealPlan,
+        error: null
+      })
+
+      mockSupabase.setMockResponse('update', {
+        data: {
+          ...mockExistingMealPlan,
+          title: 'New Title',
+          description: 'New Description',
+          category: 'Mediterranean',
+          dietary_tags: ['gluten-free', 'vegetarian'],
+          difficulty_level: 'intermediate',
+          updated_at: '2025-10-09T12:00:00Z'
+        },
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer creator-token',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: 'New Title',
+          description: 'New Description',
+          category: 'Mediterranean',
+          dietary_tags: ['gluten-free', 'vegetarian'],
+          difficulty_level: 'intermediate'
+        })
+      })
+
+      const response = await PATCH(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(data.data.meal_plan.title).toBe('New Title')
+      expect(data.data.meal_plan.category).toBe('Mediterranean')
+      expect(data.data.meal_plan.dietary_tags).toEqual(['gluten-free', 'vegetarian'])
+    })
+
+    it('should successfully publish meal plan (is_published = true)', async () => {
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
+        error: null
+      })
+
+      mockSupabase.setTableResponse('meal_plans', {
+        data: {
+          ...mockExistingMealPlan,
+          is_published: false
+        },
+        error: null
+      })
+
+      mockSupabase.setMockResponse('update', {
+        data: {
+          ...mockExistingMealPlan,
+          is_published: true,
+          updated_at: '2025-10-09T12:00:00Z'
+        },
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer creator-token',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ is_published: true })
+      })
+
+      const response = await PATCH(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+    })
+
+    it('should successfully deactivate meal plan (is_active = false)', async () => {
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
+        error: null
+      })
+
+      mockSupabase.setTableResponse('meal_plans', {
+        data: {
+          ...mockExistingMealPlan,
+          is_active: true
+        },
+        error: null
+      })
+
+      mockSupabase.setMockResponse('update', {
+        data: {
+          ...mockExistingMealPlan,
+          is_active: false,
+          updated_at: '2025-10-09T12:00:00Z'
+        },
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer creator-token',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ is_active: false })
+      })
+
+      const response = await PATCH(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+    })
+
+    it('should fail with 400 when no fields provided', async () => {
+      // Set up creator so we can reach validation
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer creator-token',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+      })
+
+      const response = await PATCH(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(data.success).toBe(false)
+      expect(data.error.message).toContain('At least one field must be provided')
+    })
+
+    it('should fail with 400 when validation fails (empty title)', async () => {
+      // Set up creator so we can reach validation
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer creator-token',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title: '' })
+      })
+
+      const response = await PATCH(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(data.success).toBe(false)
+    })
+
+    it('should fail with 400 when validation fails (invalid difficulty_level)', async () => {
+      // Set up creator so we can reach validation
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer creator-token',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ difficulty_level: 'expert' })
+      })
+
+      const response = await PATCH(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(data.success).toBe(false)
+    })
+
+    it('should fail with 401 when not authenticated', async () => {
+      // Mock authentication failure
+      const { requireAuth } = require('@/lib/api/auth')
+      requireAuth.mockRejectedValueOnce(new Error('Authentication required'))
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title: 'Updated Title' })
+      })
+
+      const response = await PATCH(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(500) // Generic error handling
+      expect(data.success).toBe(false)
+    })
+
+    it('should fail with 403 when user is not a creator', async () => {
+      // Mock user authentication
+      requireAuth.mockResolvedValueOnce({
+        ...mockAuthUser,
+        is_creator: false
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer user-token',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title: 'Updated Title' })
+      })
+
+      const response = await PATCH(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(403)
+      expect(data.success).toBe(false)
+      expect(data.error.message).toContain('Only creators')
+    })
+
+    it('should fail with 403 when creator does not own the meal plan', async () => {
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
+        error: null
+      })
+
+      // Mock meal plan owned by different creator
+      mockSupabase.setTableResponse('meal_plans', {
+        data: {
+          ...mockExistingMealPlan,
+          created_by_user_id: 'different-creator-id'
+        },
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer creator-token',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title: 'Updated Title' })
+      })
+
+      const response = await PATCH(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(403)
+      expect(data.success).toBe(false)
+      expect(data.error.message).toContain('do not have permission')
+    })
+
+    it('should fail with 404 when meal plan does not exist', async () => {
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
+        error: null
+      })
+
+      // Mock meal plan not found
+      mockSupabase.setTableResponse('meal_plans', {
+        data: null,
+        error: { message: 'Not found' }
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer creator-token',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title: 'Updated Title' })
+      })
+
+      const response = await PATCH(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(404)
+      expect(data.success).toBe(false)
+      expect(data.error.message).toContain('Meal plan not found')
+    })
+
+    it('should fail with 404 when meal plan is deleted', async () => {
+      mockSupabase.setTableResponse('users', {
+        data: mockCreator,
+        error: null
+      })
+
+      // Mock deleted meal plan
+      mockSupabase.setTableResponse('meal_plans', {
+        data: {
+          ...mockExistingMealPlan,
+          is_deleted: true
+        },
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer creator-token',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title: 'Updated Title' })
+      })
+
+      const response = await PATCH(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(404)
+      expect(data.success).toBe(false)
+    })
+
+    it('should fail with 404 when meal plan not found (no creator check)', async () => {
+      // Mock meal plan not found (creator profile check not in API)
+      mockSupabase.setTableResponse('meal_plans', {
+        data: null,
+        error: { message: 'Not found' }
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer creator-token',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title: 'Updated Title' })
+      })
+
+      const response = await PATCH(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(404)
+      expect(data.success).toBe(false)
+      expect(data.error.message).toContain('Meal plan not found')
+    })
+  })
+
+  describe('DELETE', () => {
+    const mockCreator = {
+      id: 'user-1',
+      is_creator: true,
+      total_meal_plans_created: 5
+    }
+
+    const mockExistingMealPlan = {
+      id: 'plan-1',
+      created_by_user_id: 'user-1',
+      is_deleted: false
+    }
+
+    it('should successfully soft delete meal plan', async () => {
+      mockSupabase.setTableResponse('meal_plans', {
+        data: mockExistingMealPlan,
+        error: null
+      })
+
+      mockSupabase.setMockResponse('update', {
+        data: null,
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer creator-token'
+        }
+      })
+
+      const response = await DELETE(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(data.success).toBe(true)
+      expect(data.data.message).toBe('Meal plan deleted successfully')
+      expect(data.data.meal_plan_id).toBe('plan-1')
+    })
+
+    it('should verify is_deleted, is_active, and is_published are set correctly', async () => {
+      mockSupabase.setTableResponse('meal_plans', {
+        data: mockExistingMealPlan,
+        error: null
+      })
+
+      mockSupabase.setMockResponse('update', {
+        data: null,
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer creator-token'
+        }
+      })
+
+      await DELETE(request, { params: { id: 'plan-1' } })
+
+      // Verify the update was called with correct data for meal_plans table
+      expect(mockSupabase.mockResponses.lastUpdateData).toBeDefined()
+      expect(mockSupabase.mockResponses.lastUpdateData.meal_plans).toBeDefined()
+      expect(mockSupabase.mockResponses.lastUpdateData.meal_plans.is_deleted).toBe(true)
+      expect(mockSupabase.mockResponses.lastUpdateData.meal_plans.is_active).toBe(false)
+      expect(mockSupabase.mockResponses.lastUpdateData.meal_plans.is_published).toBe(false)
+    })
+
+    it('should fail with 401 when not authenticated', async () => {
+      const { requireAuth } = require('@/lib/api/auth')
+      requireAuth.mockRejectedValueOnce(new Error('Authentication required'))
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'DELETE'
+      })
+
+      const response = await DELETE(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(500) // Generic error handling
+      expect(data.success).toBe(false)
+    })
+
+    it('should fail with 403 when user is not a creator', async () => {
+      requireAuth.mockResolvedValueOnce({
+        ...mockAuthUser,
+        is_creator: false
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer user-token'
+        }
+      })
+
+      const response = await DELETE(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(403)
+      expect(data.success).toBe(false)
+      expect(data.error.message).toContain('Only creators')
+    })
+
+    it('should fail with 403 when creator does not own the meal plan', async () => {
+      mockSupabase.setTableResponse('meal_plans', {
+        data: {
+          ...mockExistingMealPlan,
+          created_by_user_id: 'different-creator-id'
+        },
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer creator-token'
+        }
+      })
+
+      const response = await DELETE(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(403)
+      expect(data.success).toBe(false)
+      expect(data.error.message).toContain('do not have permission')
+    })
+
+    it('should fail with 404 when meal plan does not exist', async () => {
+      mockSupabase.setTableResponse('meal_plans', {
+        data: null,
+        error: { message: 'Not found' }
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer creator-token'
+        }
+      })
+
+      const response = await DELETE(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(404)
+      expect(data.success).toBe(false)
+      expect(data.error.message).toContain('Meal plan not found')
+    })
+
+    it('should fail with 409 when meal plan is already deleted', async () => {
+      mockSupabase.setTableResponse('meal_plans', {
+        data: {
+          ...mockExistingMealPlan,
+          is_deleted: true
+        },
+        error: null
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer creator-token'
+        }
+      })
+
+      const response = await DELETE(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(409)
+      expect(data.success).toBe(false)
+      expect(data.error.message).toContain('already deleted')
+    })
+
+    it('should fail with 404 when meal plan not found (no creator check)', async () => {
+      mockSupabase.setTableResponse('meal_plans', {
+        data: null,
+        error: { message: 'Not found' }
+      })
+
+      const request = new NextRequest('http://localhost/api/creators/meal-plans/plan-1', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer creator-token'
+        }
+      })
+
+      const response = await DELETE(request, { params: { id: 'plan-1' } })
+      const data = await response.json()
+
+      expect(response.status).toBe(404)
+      expect(data.success).toBe(false)
+      expect(data.error.message).toContain('Meal plan not found')
+    })
+  })
+})

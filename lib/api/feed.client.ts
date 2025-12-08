@@ -41,10 +41,18 @@ export async function createFeedPost(post: {
   related_meal_plan_id?: string
   tags?: string[]
 }): Promise<FeedPost> {
+  // Get auth token from localStorage
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+  
+  if (!token) {
+    throw new Error('Not authenticated')
+  }
+
   const response = await fetch('/api/feed/posts', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify(post),
   })
@@ -136,5 +144,30 @@ export async function recordShare(postId: string, platform = 'copy_link'): Promi
   if (!response.ok) {
     // Silently fail for share tracking
     console.error('Failed to record share')
+  }
+}
+
+/**
+ * Delete a feed post
+ * Calls DELETE /api/feed/posts/[id]
+ */
+export async function deleteFeedPost(postId: string): Promise<void> {
+  // Get auth token from localStorage
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+  
+  if (!token) {
+    throw new Error('Not authenticated')
+  }
+
+  const response = await fetch(`/api/feed/posts/${postId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to delete post')
   }
 }

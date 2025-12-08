@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Heart, MessageCircle, Share2, User, Link2, MoreHorizontal } from 'lucide-react'
+import { Heart, MessageCircle, Share2, User, Link2, MoreHorizontal, Trash2 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { Badge } from './ui/badge'
@@ -11,22 +11,39 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from './ui/dropdown-menu'
-import { togglePostLike, recordShare } from '@/lib/api/feed.client'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog'
+import { togglePostLike, recordShare, deleteFeedPost } from '@/lib/api/feed.client'
 import { useAuth } from '@/lib/auth-context'
 import { toast } from 'sonner'
 import { CommentsSection } from './CommentsSection'
 import type { FeedPostWithAuthor } from '@/lib/database-types'
+import Image from 'next/image'
 
 interface FeedPostProps {
   post: FeedPostWithAuthor
+  onDelete?: () => void
 }
 
-export function FeedPost({ post }: FeedPostProps) {
+export function FeedPost({ post, onDelete }: FeedPostProps) {
   const { user } = useAuth()
   const [liked, setLiked] = useState(post.user_has_liked)
   const [likesCount, setLikesCount] = useState(post.likes_count)
   const [showComments, setShowComments] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const isOwnPost = user?.id === post.author_id
 
   const handleLike = async () => {
     if (!user) {
@@ -68,6 +85,20 @@ export function FeedPost({ post }: FeedPostProps) {
     await recordShare(post.id, 'facebook')
   }
 
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    try {
+      await deleteFeedPost(post.id)
+      toast.success('Post deleted successfully')
+      setShowDeleteDialog(false)
+      onDelete?.()
+    } catch (error) {
+      toast.error('Failed to delete post')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const getPostTypeColor = (type: string) => {
     switch (type) {
       case 'meal_plan': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
@@ -92,14 +123,14 @@ export function FeedPost({ post }: FeedPostProps) {
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <Avatar className="w-10 h-10 ring-2 ring-teal-500 ring-offset-2">
-            <AvatarImage src={post.provider?.profile_image_url || undefined} />
+            <AvatarImage src={post.author?.creator_profile_image_url || undefined} />
             <AvatarFallback className="bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold">
-              {(post.provider?.business_name || post.author.name)?.charAt(0).toUpperCase() || 'U'}
+              {(post.author?.creator_display_name || post.author.name)?.charAt(0).toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
           <div>
             <h3 className="font-semibold text-sm text-gray-900 dark:text-white">
-              {post.provider?.business_name || post.author.name}
+              {post.author?.creator_display_name || post.author.name}
             </h3>
             <div className="flex items-center gap-2">
               <Badge className={`${getPostTypeColor(post.post_type)} text-xs px-2 py-0`}>
@@ -108,18 +139,35 @@ export function FeedPost({ post }: FeedPostProps) {
             </div>
           </div>
         </div>
-        <Button variant="ghost" size="sm" className="text-gray-500">
-          <MoreHorizontal className="w-5 h-5" />
-        </Button>
+        {isOwnPost && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-gray-500">
+                <MoreHorizontal className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Post
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* Image - Instagram Style: Full width, no padding */}
       {post.image_url && (
         <div className="relative aspect-square bg-gray-100 dark:bg-gray-900">
-          <img
+          <Image
             src={post.image_url}
             alt={post.title}
             className="w-full h-full object-cover"
+            width={500}
+            height={500}
           />
         </div>
       )}
@@ -178,7 +226,7 @@ export function FeedPost({ post }: FeedPostProps) {
       <div className="px-4 pb-2">
         <p className="text-sm text-gray-900 dark:text-white">
           <span className="font-semibold mr-2">
-            {post.provider?.business_name || post.author.name}
+            {post.author?.creator_display_name || post.author.name}
           </span>
           <span className="font-medium">{post.title}</span>
         </p>
@@ -203,7 +251,7 @@ export function FeedPost({ post }: FeedPostProps) {
               {post.meal_plan.title}
             </h4>
             <p className="text-sm text-teal-600 dark:text-teal-400 font-medium">
-              {post.meal_plan.is_free ? 'Free' : `$${post.meal_plan.final_price}`}
+              {post.meal_plan.is_free ? 'Free' : `${post.meal_plan.final_price}`}
             </p>
           </div>
         )}
@@ -230,6 +278,28 @@ export function FeedPost({ post }: FeedPostProps) {
           <CommentsSection postId={post.id} initialCount={post.comments_count} />
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Post</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this post? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </article>
   )
 }

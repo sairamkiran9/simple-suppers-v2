@@ -1,0 +1,32 @@
+# Dockerfile for running tests
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install PostgreSQL client for database operations
+RUN apk add --no-cache postgresql-client bash
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev)
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Create wait-for-db script inline
+RUN echo '#!/bin/sh' > /usr/local/bin/wait-for-db && \
+    echo 'set -e' >> /usr/local/bin/wait-for-db && \
+    echo 'host="$1"' >> /usr/local/bin/wait-for-db && \
+    echo 'shift' >> /usr/local/bin/wait-for-db && \
+    echo 'until PGPASSWORD=postgres psql -h "$host" -U postgres -c "\\q" 2>/dev/null; do' >> /usr/local/bin/wait-for-db && \
+    echo '  echo "Postgres is unavailable - sleeping"' >> /usr/local/bin/wait-for-db && \
+    echo '  sleep 1' >> /usr/local/bin/wait-for-db && \
+    echo 'done' >> /usr/local/bin/wait-for-db && \
+    echo 'echo "Postgres is up - executing command"' >> /usr/local/bin/wait-for-db && \
+    echo 'exec "$@"' >> /usr/local/bin/wait-for-db && \
+    chmod +x /usr/local/bin/wait-for-db
+
+# Default command
+CMD ["wait-for-db", "postgres-test", "npm", "run", "test:docker"]

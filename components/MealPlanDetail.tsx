@@ -18,25 +18,10 @@ export default function MealPlanDetail({ plan, onBack, onSubscribe, onUnsubscrib
   const { generateAndDownload, isGenerating } = useShoppingListDownload();
   const isSubscribed = plan.user_has_subscribed === true;
 
-  // Defensive null checks for provider data
-  if (!plan.provider) {
-    console.error('MealPlanDetail: Provider data is missing', plan);
-    return (
-      <div className="container">
-        <button className="btn btn--outline back-btn" onClick={onBack}>
-          <ArrowLeft size={16} /> Back to Plans
-        </button>
-        <div className="dashboard-card">
-          <h3>Error Loading Meal Plan</h3>
-          <p>Provider information is missing. Please try again later.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Use provider rating if available, otherwise default to 0
-  const providerRating = plan.provider.rating || 0;
-  const stars = generateStars(providerRating);
+  // Defensive null checks for creator data - use fallback if missing
+  const creatorName = plan.provider?.name || plan.provider?.business_name || plan.provider?.creator_display_name || 'Unknown Creator';
+  const creatorRating = plan.provider?.rating || plan.provider?.creator_rating || 0;
+  const stars = generateStars(creatorRating);
 
   // Generate days grid from meal_plan_days
   const daysGrid = plan.meal_plan_days?.map((day) => (
@@ -69,11 +54,11 @@ export default function MealPlanDetail({ plan, onBack, onSubscribe, onUnsubscrib
             {plan.is_free && <span className="badge badge--free">Free</span>}
           </h1>
           <div className="detail-meta">
-            <span>by {plan.provider.name || plan.provider.business_name || 'Unknown Provider'}</span>
-            {providerRating > 0 && (
+            <span>by {creatorName}</span>
+            {creatorRating > 0 && (
               <div className="meal-plan-rating">
                 <span className="stars">{stars}</span>
-                <span>{providerRating.toFixed(1)}</span>
+                <span>{creatorRating.toFixed(1)}</span>
               </div>
             )}
             {plan.difficulty_level && <span>{plan.difficulty_level} difficulty</span>}
@@ -142,7 +127,7 @@ export default function MealPlanDetail({ plan, onBack, onSubscribe, onUnsubscrib
           <h3 style={{ marginBottom: 'var(--space-12)' }}>Meal Details</h3>
           <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-base)', lineHeight: '1.6' }}>
             {isSubscribed
-              ? 'Meal details are being prepared. Please check back soon or contact the provider for more information.'
+              ? 'Meal details are being prepared. Please check back soon or contact the creator for more information.'
               : 'Subscribe to this plan to access detailed meal information, recipes, and shopping lists.'}
           </p>
         </div>

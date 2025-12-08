@@ -38,9 +38,13 @@ export interface ApiMealPlanProvider {
   id?: string
   name?: string
   business_name?: string
+  creator_display_name?: string
   profile_image_url?: string
+  creator_profile_image_url?: string
   bio?: string
+  creator_bio?: string
   rating?: number
+  creator_rating?: number
 }
 
 export interface ApiMealPlan {
@@ -58,7 +62,7 @@ export interface ApiMealPlan {
   average_rating: number
   rating_count?: number
   total_purchases: number
-  provider: ApiMealPlanProvider
+  provider?: ApiMealPlanProvider
   preview_meals?: string[]
   user_has_subscribed?: boolean
   user_purchase_id?: string
@@ -102,7 +106,7 @@ export interface ApiMealPlanDetail {
   dietary_tags?: string[]
   difficulty_level?: string
   is_free?: boolean
-  provider: ApiMealPlanProvider
+  provider?: ApiMealPlanProvider
   meal_plan_days: ApiMealPlanDay[]
   user_has_subscribed?: boolean
   user_purchase_id?: string
@@ -318,6 +322,82 @@ export interface ApiProviderDashboard {
 export interface ApiProviderMealPlansResponse {
   meal_plans: ApiMealPlan[]
   total: number
+}
+
+// ============================================================================
+// Creator Types (new - replacing Provider types)
+// ============================================================================
+
+export interface ApiCreatorProfile {
+  id: string
+  name: string
+  creator_display_name: string
+  creator_bio: string
+  creator_profile_image_url: string | null
+  creator_email_verified: boolean
+  is_active: boolean | null
+  total_earnings: number
+  total_meal_plans_created: number
+  creator_rating: number
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface ApiCreatorProfileResponse {
+  creator: ApiCreatorProfile
+}
+
+export interface ApiCreatorDashboard {
+  creator: {
+    id: string
+    name: string
+    creator_display_name: string | null
+    creator_bio: string | null
+    creator_profile_image_url: string | null
+    creator_email_verified: boolean | null
+    is_active: boolean | null
+    total_earnings: number | null
+    total_plans: number | null
+    creator_rating: number | null
+  }
+  analytics: {
+    total_meal_plans: number
+    published_plans: number
+    draft_plans: number
+    total_views: number
+    total_sales: number
+    current_month_earnings: number
+    all_time_earnings: number
+  }
+  recent_purchases: Array<{
+    id: string
+    meal_plan_title: string
+    customer_name: string
+    customer_email: string
+    purchase_price: number
+    creator_earnings: number
+    purchased_at: string
+    status: string
+  }>
+  top_performing_plans: Array<{
+    id: string
+    title: string
+    total_purchases: number
+    total_views: number
+    average_rating: number
+    final_price: number
+  }>
+}
+
+export interface ApiCreatorMealPlansResponse {
+  meal_plans: ApiMealPlan[]
+  total: number
+}
+
+export interface UpdateCreatorProfileRequest {
+  creator_display_name?: string
+  bio?: string
+  profile_image_url?: string
 }
 
 // ============================================================================

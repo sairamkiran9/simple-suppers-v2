@@ -190,16 +190,16 @@ describe('ApiClient', () => {
 
   describe('PUT requests', () => {
     it('should make PUT request with body', async () => {
-      const body = { business_name: 'New Business Name' }
+      const body = { creator_display_name: 'New Business Name' }
       ;(fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true, data: body })
       })
 
-      await apiClient.put('/providers/profile', body)
+      await apiClient.put('/creators/profile', body)
 
       expect(fetch).toHaveBeenCalledWith(
-        '/api/providers/profile',
+        '/api/creators/profile',
         expect.objectContaining({
           method: 'PUT',
           body: JSON.stringify(body)

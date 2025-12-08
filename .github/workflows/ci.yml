@@ -11,12 +11,27 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: simple_suppers_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
@@ -24,10 +39,33 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_suppers_test
+        run: |
+          for migration in supabase/migrations/*.sql; do
+            echo "Applying migration: $(basename $migration)"
+            PGPASSWORD=postgres psql -h localhost -U postgres -d simple_suppers_test -f "$migration" || true
+          done
+
       - name: Run type check
         run: npm run typecheck
 
       - name: Run tests
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_suppers_test
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:5432
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-key
+          SUPABASE_SECRET_KEY: test-secret
+          NEXTAUTH_SECRET: test-nextauth-secret-min-32-chars-long-for-ci
         run: npm test -- --passWithNoTests
 
       - name: Build
@@ -35,3 +73,11 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          files: ./coverage/coverage-final.json
+          flags: unit-tests
+          name: unit-coverage

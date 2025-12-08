@@ -112,14 +112,18 @@ export async function GET(request: NextRequest, { params }: { params: Params }) 
         dietary_tags: mealPlan.dietary_tags,
         difficulty_level: mealPlan.difficulty_level,
         is_free: mealPlan.is_free,
-        provider: {
-          id: mealPlan.provider.id,
-          name: mealPlan.provider.business_name,
-          business_name: mealPlan.provider.business_name,
-          bio: mealPlan.provider.bio,
-          profile_image_url: mealPlan.provider.profile_image_url,
-          rating: mealPlan.provider.average_rating
-        },
+        provider: mealPlan.creator ? {
+          id: mealPlan.creator.id,
+          name: mealPlan.creator.creator_display_name || mealPlan.creator.name,
+          creator_display_name: mealPlan.creator.creator_display_name,
+          bio: mealPlan.creator.creator_bio,
+          profile_image_url: mealPlan.creator.creator_profile_image_url,
+          creator_profile_image_url: mealPlan.creator.creator_profile_image_url,
+          rating: mealPlan.creator.creator_rating,
+          creator_rating: mealPlan.creator.creator_rating,
+          is_verified: mealPlan.creator.is_verified,
+          tier: mealPlan.creator.creator_tier
+        } : undefined,
         meal_plan_days: previewDays,
         user_has_subscribed: user ? !!userPurchaseId : undefined,
         user_purchase_id: user ? userPurchaseId : undefined
@@ -147,7 +151,7 @@ export async function GET(request: NextRequest, { params }: { params: Params }) 
       }))
     }))
 
-    return SuccessResponses.ok({
+    const response = SuccessResponses.ok({
       id: mealPlan.id,
       title: mealPlan.title,
       description: mealPlan.description,
@@ -158,18 +162,29 @@ export async function GET(request: NextRequest, { params }: { params: Params }) 
       dietary_tags: mealPlan.dietary_tags,
       difficulty_level: mealPlan.difficulty_level,
       is_free: mealPlan.is_free,
-      provider: {
-        id: mealPlan.provider.id,
-        name: mealPlan.provider.business_name,
-        business_name: mealPlan.provider.business_name,
-        bio: mealPlan.provider.bio,
-        profile_image_url: mealPlan.provider.profile_image_url,
-        rating: mealPlan.provider.average_rating
-      },
+      provider: mealPlan.creator ? {
+        id: mealPlan.creator.id,
+        name: mealPlan.creator.creator_display_name || mealPlan.creator.name,
+        creator_display_name: mealPlan.creator.creator_display_name,
+        bio: mealPlan.creator.creator_bio,
+        creator_bio: mealPlan.creator.creator_bio,
+        profile_image_url: mealPlan.creator.creator_profile_image_url,
+        creator_profile_image_url: mealPlan.creator.creator_profile_image_url,
+        rating: mealPlan.creator.creator_rating,
+        creator_rating: mealPlan.creator.creator_rating,
+        is_verified: mealPlan.creator.is_verified,
+        tier: mealPlan.creator.creator_tier
+      } : undefined,
       meal_plan_days: fullDays,
       user_has_subscribed: user ? !!userPurchaseId : undefined,
       user_purchase_id: user ? userPurchaseId : undefined
     })
+
+    // Add browser-only cache header (no edge caching)
+    // 10 minutes cache for meal plan details
+    response.headers.set('Cache-Control', 'max-age=600, private')
+
+    return response
 
   } catch (error) {
     return handleAPIError(error)

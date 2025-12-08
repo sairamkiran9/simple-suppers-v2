@@ -205,32 +205,56 @@ export default function ApiDocsPage() {
         }
       ]
     },
-    providers: {
-      title: 'Provider Management',
+    creators: {
+      title: 'Creator Management',
       routes: [
         {
           method: 'GET',
-          path: '/api/providers/profile',
-          description: 'Get provider profile',
-          auth: 'Provider'
+          path: '/api/creators/profile',
+          description: 'Get creator profile',
+          auth: 'Creator'
         },
         {
-          method: 'PUT',
-          path: '/api/providers/profile',
-          description: 'Update provider profile',
-          auth: 'Provider'
-        },
-        {
-          method: 'GET',
-          path: '/api/providers/dashboard',
-          description: 'Get provider dashboard',
-          auth: 'Provider'
+          method: 'POST',
+          path: '/api/creators/profile',
+          description: 'Update creator profile',
+          auth: 'Creator'
         },
         {
           method: 'GET',
-          path: '/api/providers/meal-plans',
-          description: 'Get provider meal plans',
-          auth: 'Provider'
+          path: '/api/creators/dashboard',
+          description: 'Get creator dashboard',
+          auth: 'Creator'
+        },
+        {
+          method: 'GET',
+          path: '/api/creators/meal-plans',
+          description: 'Get creator meal plans',
+          auth: 'Creator'
+        },
+        {
+          method: 'POST',
+          path: '/api/creators/meal-plans',
+          description: 'Create new meal plan',
+          auth: 'Creator'
+        },
+        {
+          method: 'PATCH',
+          path: '/api/creators/meal-plans/{id}',
+          description: 'Update meal plan',
+          auth: 'Creator'
+        },
+        {
+          method: 'DELETE',
+          path: '/api/creators/meal-plans/{id}',
+          description: 'Delete meal plan',
+          auth: 'Creator'
+        },
+        {
+          method: 'POST',
+          path: '/api/user/enable-creator-mode',
+          description: 'Enable creator mode for user',
+          auth: true
         }
       ]
     },

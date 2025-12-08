@@ -16,14 +16,20 @@ export function useTheme() {
 
   useEffect(() => {
     const root = document.documentElement;
-    
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      root.setAttribute('data-color-scheme', systemTheme);
-      setResolvedTheme(systemTheme);
+
+    // Resolve the effective theme (either explicit or system)
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const resolved = theme === 'system' ? (systemPrefersDark ? 'dark' : 'light') : theme;
+
+    // Keep the CSS custom property in sync (used by globals.css)
+    root.setAttribute('data-color-scheme', resolved);
+    setResolvedTheme(resolved);
+
+    // Also toggle the Tailwind `dark` class so `dark:` variants apply
+    if (resolved === 'dark') {
+      root.classList.add('dark');
     } else {
-      root.setAttribute('data-color-scheme', theme);
-      setResolvedTheme(theme);
+      root.classList.remove('dark');
     }
     
     localStorage.setItem('theme', theme);

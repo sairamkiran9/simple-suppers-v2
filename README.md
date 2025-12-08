@@ -54,6 +54,8 @@ A modern meal planning application built with Next.js, TypeScript, and Tailwind 
 
 - Node.js 18+
 - npm or yarn package manager
+- Docker Desktop (for containerized development and testing)
+- PostgreSQL (or use Docker)
 
 ### Installation
 
@@ -68,20 +70,73 @@ cd simple-suppers-v2
 npm install
 ```
 
-3. Run the development server:
+3. Set up environment variables:
+```bash
+cp .env.local.example .env.local
+# Edit .env.local with your configuration
+```
+
+4. Run the development server:
 ```bash
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+5. Open [http://localhost:3010](http://localhost:3010) in your browser.
+
+### Docker Development
+
+For a complete development environment with database:
+
+```bash
+# Start all services (app + database)
+make docker-up
+# or
+npm run docker:up
+
+# View logs
+make docker-logs
+
+# Stop services
+make docker-down
+```
+
+See [Docker Testing Guide](docs/DOCKER_TESTING.md) for detailed instructions.
 
 ## Available Scripts
 
-- `npm run dev` - Start development server
+### Development
+- `npm run dev` - Start development server (port 3010)
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
 - `npm run typecheck` - Run TypeScript type checking
+
+### Testing
+- `npm test` - Run all tests
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:coverage` - Generate coverage report
+- `npm run test:docker` - Run tests in Docker environment
+
+### Database
+- `npm run supabase:start` - Start local Supabase
+- `npm run supabase:stop` - Stop local Supabase
+- `npm run supabase:reset` - Reset database
+- `npm run db:seed` - Seed database with sample data
+
+### Docker
+- `npm run docker:build` - Build Docker images
+- `npm run docker:up` - Start Docker services
+- `npm run docker:down` - Stop Docker services
+- `npm run docker:test` - Run tests in Docker
+- `npm run docker:clean` - Clean Docker volumes
+- `npm run ci:test` - Simulate CI environment locally
+
+### Convenience (with Make)
+- `make docker-up` - Start development environment
+- `make docker-test` - Run tests
+- `make docker-logs` - View logs
+- `make docker-db-shell` - Access database shell
+- `make ci-test` - Run CI tests locally
 
 ## Development Guidelines
 
